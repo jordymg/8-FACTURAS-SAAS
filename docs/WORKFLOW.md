@@ -14,7 +14,21 @@ Actualizá `docs/STATUS.md`: qué se hizo hoy, qué queda pendiente, decisiones 
 Dame el archivo completo listo para commitear.
 
 En Claude Code: agregar "commit y push".
-En otras IAs: copiar el texto → Claude Code → "pegá esto en docs/STATUS.md, commit y push".
+En otras IAs: usar el protocolo de handoff (abajo).
+
+## Handoff desde IA externa → Claude Code
+
+Toda IA que NO puede pushear debe, al cerrar sesión, generar UN archivo: `docs/handoffs/YYYY-MM-DD-tema.md` con:
+
+- Resumen de la sesión — qué se habló, con lujo de detalles.
+- Decisiones tomadas — y su justificación.
+- Cambios a pushear — lista exacta de archivos a crear/modificar con su contenido completo.
+- STATUS.md actualizado — el archivo completo, listo para reemplazar.
+
+Luego, en Claude Code:
+
+Leé este handoff, aplicá los cambios que indica, actualizá `docs/STATUS.md` con la versión incluida, commit y push.
+[pegar/adjuntar el archivo]
 
 ## Regla
 
