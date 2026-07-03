@@ -1,0 +1,10 @@
+{
+  "name": "Facturas",
+  "short_name": "Facturas",
+  "description": "Registrá tus facturas recibidas con una foto",
+  "start_url": "/app",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": []
+}

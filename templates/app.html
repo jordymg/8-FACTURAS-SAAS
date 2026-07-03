@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Facturas{% endblock %}
+{% block body %}
+
+<header class="app-header">
+  <span class="app-title">Facturas</span>
+  <form action="{{ url_for('auth.logout') }}" method="post" style="display:inline">
+    <button type="submit" class="btn-ghost">Salir</button>
+  </form>
+</header>
+
+<!-- Screen: capture / home -->
+<main id="screen-capture" class="screen active">
+  <div class="capture-area">
+    <label class="btn btn-primary btn-capture" for="photo-input">
+      <span class="icon">📷</span> Nueva factura
+      <input id="photo-input" type="file" accept="image/*" capture="environment" hidden>
+    </label>
+  </div>
+  <section class="invoice-section">
+    <h2 class="section-title">Últimas facturas</h2>
+    <div id="invoice-list" class="invoice-list">
+      <p class="list-placeholder">Cargando…</p>
+    </div>
+  </section>
+</main>
+
+<!-- Screen: review / edit -->
+<main id="screen-review" class="screen hidden">
+  <div class="review-image-wrap">
+    <img id="review-image" src="" alt="Factura">
+  </div>
+  <div id="review-status" class="status-msg hidden"></div>
+  <form id="review-form" class="review-form" autocomplete="off">
+    <label class="field-label">Fecha
+      <input type="date" name="fecha">
+    </label>
+    <label class="field-label">Tipo
+      <input type="text" name="tipo_comprobante" placeholder="Factura A">
+    </label>
+    <label class="field-label">Número
+      <input type="text" name="numero" placeholder="0001-00012345">
+    </label>
+    <label class="field-label">CUIT emisor
+      <input type="text" name="cuit_emisor" inputmode="numeric" placeholder="20123456789">
+    </label>
+    <label class="field-label">Razón social
+      <input type="text" name="razon_social">
+    </label>
+    <label class="field-label">Neto
+      <input type="number" name="neto" step="0.01" inputmode="decimal">
+    </label>
+    <label class="field-label">IVA
+      <input type="number" name="iva" step="0.01" inputmode="decimal">
+    </label>
+    <label class="field-label">Total
+      <input type="number" name="total" step="0.01" inputmode="decimal">
+    </label>
+    <div class="review-actions">
+      <button type="button" id="btn-cancel" class="btn btn-ghost">Cancelar</button>
+      <button type="submit" id="btn-save" class="btn btn-primary">Guardar</button>
+    </div>
+  </form>
+</main>
+
+<script>
+  window.__STRINGS__ = {{ strings | tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/static/sw.js");
+  }
+</script>
+{% endblock %}

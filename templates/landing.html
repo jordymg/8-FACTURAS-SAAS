@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Facturas — Registrá tus gastos con una foto{% endblock %}
+{% block body %}
+<main class="landing">
+  <div class="landing-inner">
+    <h1 class="landing-title">Facturas</h1>
+    <p class="landing-desc">
+      Fotografiá tus facturas recibidas.<br>
+      Los datos se guardan en tu Google Sheets.<br>
+      Enviáselo a tu contador al fin de mes.
+    </p>
+    <a href="{{ url_for('auth.google_login') }}" class="btn btn-primary btn-lg">
+      Ingresar con Google
+    </a>
+  </div>
+</main>
+{% endblock %}

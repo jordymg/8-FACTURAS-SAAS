@@ -1,0 +1,20 @@
+{
+  "app_name": "Facturas",
+  "nueva_factura": "Nueva factura",
+  "guardar": "Guardar",
+  "cancelar": "Cancelar",
+  "extrayendo": "Extrayendo datos…",
+  "guardando": "Guardando…",
+  "guardado": "Factura guardada.",
+  "sin_facturas": "Sin facturas aún.",
+  "labels": {
+    "fecha": "Fecha",
+    "tipo_comprobante": "Tipo",
+    "numero": "Número",
+    "cuit_emisor": "CUIT emisor",
+    "razon_social": "Razón social",
+    "neto": "Neto",
+    "iva": "IVA",
+    "total": "Total"
+  }
+}
