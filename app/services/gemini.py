@@ -2,7 +2,8 @@ import json
 import os
 from typing import Optional
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 _PROMPT = (
     "Extract the following fields from this Argentine invoice image and return ONLY a valid JSON object. "
@@ -21,13 +22,16 @@ _PROMPT = (
 
 
 def extract_invoice(image_bytes: bytes, mime_type: str = "image/jpeg") -> Optional[dict]:
-    genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-    model = genai.GenerativeModel(os.getenv("GEMINI_MODEL", "gemini-1.5-flash"))
-    response = model.generate_content(
-        [{"mime_type": mime_type, "data": image_bytes}, _PROMPT]
+    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+    model = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+    response = client.models.generate_content(
+        model=model,
+        contents=[
+            types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+            _PROMPT,
+        ],
     )
     text = response.text.strip()
-    # Strip markdown code fences if the model includes them despite instructions
     if text.startswith("```"):
         lines = text.splitlines()
         text = "\n".join(lines[1:-1] if lines[-1] == "```" else lines[1:])

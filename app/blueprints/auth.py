@@ -44,6 +44,9 @@ def google_login():
         include_granted_scopes="true",
     )
     session["oauth_state"] = state
+    # Persist PKCE verifier so the callback's fresh Flow can pass it to fetch_token
+    if flow.code_verifier:
+        session["code_verifier"] = flow.code_verifier
     return redirect(authorization_url)
 
 
@@ -53,7 +56,11 @@ def google_callback():
         return "State mismatch — possible CSRF", 400
 
     flow = _flow(url_for("auth.google_callback", _external=True))
-    flow.fetch_token(authorization_response=request.url)
+    code_verifier = session.pop("code_verifier", None)
+    flow.fetch_token(
+        authorization_response=request.url,
+        **({"code_verifier": code_verifier} if code_verifier else {}),
+    )
     credentials = flow.credentials
 
     userinfo_svc = googleapiclient.discovery.build(
