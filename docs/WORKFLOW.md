@@ -2,6 +2,11 @@
 
 El repo es la única fuente de verdad. Claude Code es la única puerta de escritura (commit + push).
 
+inbox/: carpeta de entrada. Cuando el usuario lo pida, leé los
+archivos de inbox/, aplicalos donde corresponda (moverlos, reemplazar docs,
+ejecutar lo que indiquen), y después BORRÁ el contenido de inbox/ (dejando
+.gitkeep). Nunca dejes archivos procesados ahí.
+
 ## Empezar sesión (cualquier IA)
 ```
 Leé docs/STATUS.md y docs/ del repo facturas-saas antes de hacer nada.
