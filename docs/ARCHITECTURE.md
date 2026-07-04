@@ -5,33 +5,42 @@
 ## 1. Stack
 | Layer | Choice | ADR |
 |-------|--------|-----|
-| Frontend | PWA (HTML/JS/CSS, vanilla or minimal framework), camera via `input capture` / MediaDevices | 0001 |
+| Frontend | PWA (HTML/JS/CSS, vanilla), drag&drop multi-archivo + cámara | 0001 |
 | Backend / API | Python + Flask | 0001 |
-| Database | User's own Google Sheet (one spreadsheet per user) + minimal app DB (SQLite → Postgres on Render) for users/subscriptions | 0001, 0002 |
-| Auth | Google OAuth 2.0 (scopes: Sheets, Drive file) | 0002 |
+| Database | User's own Google Sheet (one spreadsheet per user) + minimal app DB (SQLite → Postgres on Render) for users/subscriptions | 0001, 0002, 0004 |
+| Auth | Google OAuth 2.0 — solo identidad (scopes: openid, email). Sheets se escriben con una Service Account, no con el token del usuario | 0004 |
 | Payments | Mercado Pago suscripciones | 0003 |
 | Hosting | Render (single Flask service serves landing + PWA + API) | 0001 |
-| AI / external APIs | Gemini (vision) for invoice data extraction | 0001 |
+| AI / external APIs | Gemini (vision, `response_schema` estructurado) for invoice data extraction | 0001, 0004 |
 
 ## 2. System overview
-Phone (PWA) → photo → Flask API → Gemini (extract) → user reviews in PWA → Flask API → Google Sheets API (append row) + Google Drive API (store image) → month-end export from the sheet.
+Foto/PDF (PWA, uno o varios) → Flask API → Gemini extrae los 9 campos → usuario revisa
+en tarjetas editables → Flask API → Service Account escribe la fila en el Sheet del
+usuario (`gspread`) + la imagen se guarda en disco del servidor → export a fin de mes
+desde la propia planilla.
 
-App DB stores only: user id, Google tokens (encrypted), subscription state, monthly invoice count.
+App DB (`User`) guarda solo: identidad de Google, `spreadsheet_id` conectado, estado de
+suscripción, contador de facturas del mes. No hay tokens OAuth que persistir — el login
+es solo para identidad, la Service Account hace todo el acceso a Sheets.
 
 ## 3. Data model
-### Invoice row (in user's Google Sheet)
+### Invoice row (en la planilla del usuario, plantilla "Facturas AFIP")
+Definido en `app/services/fields.py` — único lugar a tocar si cambian/agregan campos
+o plantillas.
+
 | Field | Type | Notes |
 |-------|------|-------|
-| fecha | date | invoice date |
-| tipo_comprobante | string | A/B/C, ticket, etc. |
+| fecha | date | AAAA-MM-DD |
+| proveedor | string | razón social del emisor |
+| cuit | string | CUIT del emisor, 11 dígitos |
+| tipo | string | Factura A/B/C, Presupuesto, Nota de Crédito, etc. |
 | numero | string | punto de venta + número |
-| cuit_emisor | string | 11 digits |
-| razon_social | string | |
-| neto | number | |
-| iva | number | |
+| neto | number | vacío en Factura B/C si no se discrimina |
+| iva | number | vacío en Factura B/C si no se discrimina |
 | total | number | |
-| imagen_url | string | Drive link |
-| cargada_el | datetime | timestamp of save |
+| moneda | string | ARS / USD |
+| imagen | string | ruta del archivo guardado (ver storage.py) |
+| cargada_el | datetime | timestamp del guardado |
 
 ### User (app DB)
 | Field | Type | Notes |
@@ -39,28 +48,31 @@ App DB stores only: user id, Google tokens (encrypted), subscription state, mont
 | id | uuid | |
 | google_sub | string | Google account id |
 | email | string | |
-| sheet_id | string | user's spreadsheet |
-| drive_folder_id | string | invoice images folder |
-| tokens | encrypted | OAuth refresh token |
+| spreadsheet_id | string | planilla del usuario, compartida con la SA |
 | sub_status | enum | trial / active / blocked |
 | invoices_this_month | int | reset monthly, cap 250 |
-
-Relations: User 1—1 Sheet, User 1—1 Drive folder.
 
 ## 4. API surface (MVP)
 | Method | Route | Purpose | Auth |
 |--------|-------|---------|------|
 | GET | / | Landing page | none |
-| GET | /app | PWA | session |
-| GET | /auth/google, /auth/callback | OAuth flow | none |
-| POST | /api/extract | photo in → extracted fields out (Gemini) | session |
-| POST | /api/invoices | save reviewed row to Sheet + image to Drive | session |
+| GET | /app | PWA (captura + revisión + últimas facturas) | session |
+| GET | /app/config | Conectar planilla (mostrar email de la SA, validar acceso) | session |
+| GET | /auth/google, /oauth2callback | Login (identidad, sin scopes sensibles) | none |
+| POST | /api/sheet/connect | valida que la SA puede abrir la planilla y la guarda en el User | session |
+| POST | /api/extract | uno o varios archivos in → fields extraídos out (Gemini) por archivo | session |
+| POST | /api/invoices | guarda fila revisada en el Sheet (SA) + imagen en disco | session |
 | GET | /api/invoices?month= | list rows (from Sheet) | session |
-| POST | /api/export?month= | xlsx / share link for the month | session |
-| POST | /api/mp/webhook | Mercado Pago subscription events | signature |
+| POST | /api/export?month= | xlsx / share link for the month (pendiente) | session |
+| POST | /api/mp/webhook | Mercado Pago subscription events (pendiente) | signature |
 
 ## 5. Environments & secrets
-- Local: `flask run` with `.env` (GEMINI_API_KEY, GOOGLE_CLIENT_ID/SECRET, MP keys)
+- Local: `flask run --port 5050` (el redirect_uri de OAuth registrado en Google Cloud
+  Console para este client_id es `http://localhost:5050/oauth2callback` — entrar por
+  `localhost`, no `127.0.0.1`, o Google rechaza con `redirect_uri_mismatch`) con `.env`
+  (`GEMINI_API_KEY`, `GOOGLE_CLIENT_ID/SECRET`, `GOOGLE_SA_CREDENTIALS_FILE`)
+- Credenciales de la Service Account: archivo JSON fuera del repo (`instance/`,
+  gitignored), path apuntado por `GOOGLE_SA_CREDENTIALS_FILE`
 - Production: Render web service, auto-deploy from GitHub `master`
 - Secrets live in: Render dashboard env vars — never in the repo
 

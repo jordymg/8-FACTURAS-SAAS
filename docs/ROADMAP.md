@@ -4,13 +4,15 @@
 
 ## Phase 1 — Core flow end-to-end (CURRENT)
 Goal: one user (the founder) completes foto → extracción → revisión → Sheet with the production stack.
-- [ ] Port Flask/Gemini prototype into repo structure — depends on: —
-- [ ] Google OAuth flow + create/connect user Sheet & Drive folder — depends on: —
-- [ ] PWA: capture screen + review/edit screen — depends on: prototype ported
-- [ ] POST /api/invoices: append row + upload image — depends on: OAuth
-- [ ] Deploy to Render (single service) — depends on: all above
+- [x] Prototipo del founder integrado: Service Account para Sheets, prompt/campos validados, UI multi-archivo con tarjetas (ver ADR-0004)
+- [x] Google OAuth flow (solo identidad) + pantalla de conexión de planilla (Service Account)
+- [x] PWA: captura multi-archivo (drag&drop) + tarjetas de revisión/edición
+- [x] POST /api/invoices: append row (Sheet vía SA) + guardado de imagen (disco local, interino)
+- [x] Probado end-to-end en local con cuenta real: login → conectar planilla → foto → extracción → guardar → aparece en el Sheet
+- [ ] Decidir storage definitivo de imagen antes de producción: Drive del usuario (OAuth con verificación) vs. S3/R2 — depende de: decisión del founder
+- [ ] Deploy to Render (single service) — depends on: decisión de storage de imagen
 
-Exit criterion: founder saves a real invoice from his phone to his own Sheet via the public URL.
+Exit criterion: founder saves a real invoice from his phone to his own Sheet via the public URL. ✅ probado en local, falta el deploy público.
 
 ## Phase 2 — Beta with real users
 Goal: uncle + 1 more user run a full month unassisted.

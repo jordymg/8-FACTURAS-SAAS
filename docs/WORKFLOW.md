@@ -21,6 +21,10 @@ decisiones tomadas. Dame el archivo completo listo para commitear.
 ```
 - En Claude Code: agregar "commit y push".
 - En otras IAs: usar el protocolo de handoff (abajo).
+- El bloque **Next** de STATUS.md debe escribirse para alguien que no conoce el
+  proyecto: pasos numerados, concretos, en lenguaje simple, indicando QUÉ hacer,
+  DÓNDE y QUÉ se necesita para hacerlo. Antes de escribirlo, verificar con el
+  usuario que cada punto siga pendiente.
 
 ## Handoff desde IA externa → Claude Code
 Toda IA que NO puede pushear debe, al cerrar sesión, generar UN archivo:

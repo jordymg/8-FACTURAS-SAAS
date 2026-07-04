@@ -9,12 +9,23 @@
   "sin_facturas": "Sin facturas aún.",
   "labels": {
     "fecha": "Fecha",
-    "tipo_comprobante": "Tipo",
+    "proveedor": "Proveedor",
+    "cuit": "CUIT",
+    "tipo": "Tipo",
     "numero": "Número",
-    "cuit_emisor": "CUIT emisor",
-    "razon_social": "Razón social",
     "neto": "Neto",
     "iva": "IVA",
-    "total": "Total"
+    "total": "Total",
+    "moneda": "Moneda"
+  },
+  "config": {
+    "titulo": "Conectá tu planilla",
+    "subtitulo": "Para guardar comprobantes necesitás vincular tu Google Sheets.",
+    "paso1": "Paso 1 — Compartí tu planilla con el asistente",
+    "paso1_desc": "Abrí tu planilla de Google Sheets → \"Compartir\" → agregá este email como Editor:",
+    "paso2": "Paso 2 — Pegá la URL o el ID de tu planilla",
+    "paso2_desc": "Podés pegar la URL completa o directamente el ID (el código largo entre /d/ y /edit).",
+    "validar": "Validar conexión",
+    "copiar": "Copiar"
   }
 }

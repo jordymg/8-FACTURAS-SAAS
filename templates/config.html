@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Facturas — Conectar planilla{% endblock %}
+{% block body %}
+
+<header class="app-header">
+  <span class="app-title">Facturas</span>
+  <form action="{{ url_for('auth.logout') }}" method="post" style="display:inline">
+    <button type="submit" class="btn-ghost">Salir</button>
+  </form>
+</header>
+
+<main class="screen active">
+  <h1>{{ strings.config.titulo }}</h1>
+  <p class="subtitulo">{{ strings.config.subtitulo }}</p>
+
+  <div class="paso">
+    <h2>{{ strings.config.paso1 }}</h2>
+    <p>{{ strings.config.paso1_desc }}</p>
+    <div class="email-sa">
+      <code id="sa-email">{{ sa_email }}</code>
+      <button type="button" class="btn-ghost" id="btn-copiar">{{ strings.config.copiar }}</button>
+    </div>
+  </div>
+
+  <div class="paso">
+    <h2>{{ strings.config.paso2 }}</h2>
+    <p>{{ strings.config.paso2_desc }}</p>
+    <input type="text" id="input-planilla" class="input-planilla"
+           placeholder="https://docs.google.com/spreadsheets/d/...">
+    <button type="button" class="btn btn-primary" id="btn-validar" style="width:100%;margin-top:.75rem">
+      {{ strings.config.validar }}
+    </button>
+    <div id="msg-config" class="status-msg hidden"></div>
+  </div>
+</main>
+
+<script>
+document.getElementById("btn-copiar").addEventListener("click", () => {
+  const email = document.getElementById("sa-email").textContent.trim();
+  navigator.clipboard.writeText(email).then(() => {
+    const btn = document.getElementById("btn-copiar");
+    const original = btn.textContent;
+    btn.textContent = "✓";
+    setTimeout(() => (btn.textContent = original), 1500);
+  });
+});
+
+document.getElementById("btn-validar").addEventListener("click", async () => {
+  const planilla = document.getElementById("input-planilla").value.trim();
+  const btn = document.getElementById("btn-validar");
+  const msg = document.getElementById("msg-config");
+  if (!planilla) {
+    msg.className = "status-msg error";
+    msg.textContent = "Ingresá la URL o el ID de la planilla.";
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = "Validando…";
+  msg.className = "status-msg hidden";
+  try {
+    const resp = await fetch("/api/sheet/connect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ planilla }),
+    });
+    const r = await resp.json();
+    if (r.ok) {
+      msg.className = "status-msg";
+      msg.textContent = "✓ Conexión exitosa. Redirigiendo…";
+      setTimeout(() => (window.location.href = "/app"), 1000);
+    } else {
+      msg.className = "status-msg error";
+      msg.textContent = r.error;
+      btn.disabled = false;
+      btn.textContent = "{{ strings.config.validar }}";
+    }
+  } catch (e) {
+    msg.className = "status-msg error";
+    msg.textContent = "Error de red. Intentá de nuevo.";
+    btn.disabled = false;
+    btn.textContent = "{{ strings.config.validar }}";
+  }
+});
+</script>
+{% endblock %}

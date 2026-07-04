@@ -4,6 +4,8 @@ import os
 from flask import Blueprint, redirect, render_template, session, url_for
 
 from app.models import User, db
+from app.services import sheets
+from app.services.fields import FIELDS
 
 web_bp = Blueprint("web", __name__)
 
@@ -15,6 +17,11 @@ def _strings() -> dict:
         return json.load(f)
 
 
+def _current_user() -> User | None:
+    user_id = session.get("user_id")
+    return db.session.get(User, user_id) if user_id else None
+
+
 @web_bp.route("/")
 def landing():
     if session.get("user_id"):
@@ -24,7 +31,20 @@ def landing():
 
 @web_bp.route("/app")
 def app_view():
-    if not session.get("user_id"):
+    user = _current_user()
+    if not user:
         return redirect(url_for("web.landing"))
-    user = db.session.get(User, session["user_id"])
-    return render_template("app.html", user=user, strings=_strings())
+    if not user.spreadsheet_id:
+        return redirect(url_for("web.config_view"))
+    return render_template(
+        "app.html", user=user, strings=_strings(),
+        campos_json=json.dumps(FIELDS, ensure_ascii=False),
+    )
+
+
+@web_bp.route("/app/config")
+def config_view():
+    user = _current_user()
+    if not user:
+        return redirect(url_for("web.landing"))
+    return render_template("config.html", user=user, sa_email=sheets.sa_email(), strings=_strings())

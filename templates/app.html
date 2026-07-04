@@ -4,19 +4,27 @@
 
 <header class="app-header">
   <span class="app-title">Facturas</span>
-  <form action="{{ url_for('auth.logout') }}" method="post" style="display:inline">
-    <button type="submit" class="btn-ghost">Salir</button>
-  </form>
+  <div style="display:flex;align-items:center;gap:1rem">
+    <a href="{{ url_for('web.config_view') }}" class="btn-ghost" style="text-decoration:none;font-size:.85rem;padding:.4rem .75rem">Configuración</a>
+    <form action="{{ url_for('auth.logout') }}" method="post" style="display:inline">
+      <button type="submit" class="btn-ghost">Salir</button>
+    </form>
+  </div>
 </header>
 
 <!-- Screen: capture / home -->
 <main id="screen-capture" class="screen active">
-  <div class="capture-area">
-    <label class="btn btn-primary btn-capture" for="photo-input">
-      <span class="icon">📷</span> Nueva factura
-      <input id="photo-input" type="file" accept="image/*" capture="environment" hidden>
-    </label>
-  </div>
+  <label class="zona" id="zona" for="input-archivos">
+    <p><strong>Arrastrá los archivos acá</strong></p>
+    <p>o hacé click para elegirlos (o sacar una foto)</p>
+    <p class="zona-formatos">JPG · PNG · WEBP · PDF</p>
+    <input type="file" id="input-archivos" multiple accept="image/jpeg,image/png,image/webp,application/pdf" hidden>
+  </label>
+
+  <ul id="lista-archivos" class="lista-archivos"></ul>
+  <button class="btn btn-primary" id="btn-procesar" style="width:100%;margin-top:.6rem" disabled>Procesar con IA</button>
+  <p id="cargando" class="status-msg hidden">Extrayendo datos con IA, puede tardar unos segundos…</p>
+
   <section class="invoice-section">
     <h2 class="section-title">Últimas facturas</h2>
     <div id="invoice-list" class="invoice-list">
@@ -25,46 +33,15 @@
   </section>
 </main>
 
-<!-- Screen: review / edit -->
+<!-- Screen: review / edit (una card por comprobante) -->
 <main id="screen-review" class="screen hidden">
-  <div class="review-image-wrap">
-    <img id="review-image" src="" alt="Factura">
-  </div>
-  <div id="review-status" class="status-msg hidden"></div>
-  <form id="review-form" class="review-form" autocomplete="off">
-    <label class="field-label">Fecha
-      <input type="date" name="fecha">
-    </label>
-    <label class="field-label">Tipo
-      <input type="text" name="tipo_comprobante" placeholder="Factura A">
-    </label>
-    <label class="field-label">Número
-      <input type="text" name="numero" placeholder="0001-00012345">
-    </label>
-    <label class="field-label">CUIT emisor
-      <input type="text" name="cuit_emisor" inputmode="numeric" placeholder="20123456789">
-    </label>
-    <label class="field-label">Razón social
-      <input type="text" name="razon_social">
-    </label>
-    <label class="field-label">Neto
-      <input type="number" name="neto" step="0.01" inputmode="decimal">
-    </label>
-    <label class="field-label">IVA
-      <input type="number" name="iva" step="0.01" inputmode="decimal">
-    </label>
-    <label class="field-label">Total
-      <input type="number" name="total" step="0.01" inputmode="decimal">
-    </label>
-    <div class="review-actions">
-      <button type="button" id="btn-cancel" class="btn btn-ghost">Cancelar</button>
-      <button type="submit" id="btn-save" class="btn btn-primary">Guardar</button>
-    </div>
-  </form>
+  <div id="cards"></div>
+  <button type="button" id="btn-volver" class="btn btn-ghost" style="width:100%;margin-top:1rem">Volver</button>
 </main>
 
 <script>
   window.__STRINGS__ = {{ strings | tojson }};
+  window.__CAMPOS__ = {{ campos_json | safe }};
 </script>
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 <script>

@@ -5,34 +5,50 @@ from typing import Optional
 from google import genai
 from google.genai import types
 
+from app.services.fields import FIELD_KEYS
+
 _PROMPT = (
-    "Extract the following fields from this Argentine invoice image and return ONLY a valid JSON object. "
-    "If a field is not visible or cannot be determined, use null.\n"
-    "Fields:\n"
-    "- fecha: invoice date in YYYY-MM-DD format\n"
-    "- tipo_comprobante: document type (e.g. 'Factura A', 'Factura B', 'Factura C', 'Ticket', 'Nota de Crédito A')\n"
-    "- numero: invoice number as 'XXXX-XXXXXXXX' (punto de venta hyphen número)\n"
-    "- cuit_emisor: issuer CUIT, 11 digits, no dashes or spaces\n"
-    "- razon_social: issuer business name\n"
-    "- neto: pre-tax amount as a float, no currency symbols\n"
-    "- iva: VAT amount as a float, no currency symbols\n"
-    "- total: total amount as a float, no currency symbols\n"
-    "Return ONLY the JSON object, no markdown fences, no explanation."
+    "Sos un asistente que extrae datos de comprobantes argentinos (facturas y presupuestos "
+    "de proveedores) a partir de una foto.\n\n"
+    "Mirá la imagen y devolvé los datos del comprobante. Reglas:\n\n"
+    "- Extraé SOLO lo que ves en la imagen. Si un dato no está o no se lee con claridad, "
+    'dejalo como string vacío "". NUNCA inventes ni completes con suposiciones.\n'
+    "- Los importes los devolvés como número con punto decimal y SIN separador de miles. "
+    'Ejemplo: si en la factura dice "1.234,56" devolvés "1234.56".\n'
+    "- La fecha la devolvés en formato AAAA-MM-DD.\n"
+    "- El tipo de comprobante: distinguí Factura A, Factura B, Factura C, Presupuesto, "
+    "Nota de Crédito, Remito, etc. según lo que diga el comprobante.\n"
+    "- El CUIT es el del proveedor (quien emite), no el del receptor.\n"
+    "- Neto gravado e IVA: en Factura A suelen venir discriminados. En B y C el IVA va "
+    "incluido en el total y no se discrimina, así que dejá iva y neto vacíos si no aparecen "
+    "por separado.\n"
+    '- Moneda: "ARS" si son pesos argentinos, "USD" si son dólares.'
 )
+
+FORMATOS_SOPORTADOS = {
+    "image/jpeg": "image/jpeg",
+    "image/png": "image/png",
+    "image/webp": "image/webp",
+    "application/pdf": "application/pdf",
+}
 
 
 def extract_invoice(image_bytes: bytes, mime_type: str = "image/jpeg") -> Optional[dict]:
     client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-    model = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
     response = client.models.generate_content(
         model=model,
         contents=[
             types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
             _PROMPT,
         ],
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema={
+                "type": "object",
+                "properties": {key: {"type": "string"} for key in FIELD_KEYS},
+                "required": FIELD_KEYS,
+            },
+        ),
     )
-    text = response.text.strip()
-    if text.startswith("```"):
-        lines = text.splitlines()
-        text = "\n".join(lines[1:-1] if lines[-1] == "```" else lines[1:])
-    return json.loads(text)
+    return json.loads(response.text)

@@ -1,51 +1,69 @@
-from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
+import json
+import os
+import re
+from functools import lru_cache
 
-_HEADERS = [
-    "fecha", "tipo_comprobante", "numero", "cuit_emisor",
-    "razon_social", "neto", "iva", "total", "imagen_url", "cargada_el",
-]
+import gspread
+from google.oauth2 import service_account
 
+from app.services.fields import FIELD_KEYS
 
-def _service(credentials: Credentials):
-    return build("sheets", "v4", credentials=credentials, cache_discovery=False)
-
-
-def create_spreadsheet(credentials: Credentials, email: str) -> str:
-    service = _service(credentials)
-    spreadsheet = service.spreadsheets().create(body={
-        "properties": {"title": f"Facturas — {email}"},
-        "sheets": [{"properties": {"title": "Facturas"}}],
-    }).execute()
-    sheet_id = spreadsheet["spreadsheetId"]
-    service.spreadsheets().values().update(
-        spreadsheetId=sheet_id,
-        range="Facturas!A1",
-        valueInputOption="RAW",
-        body={"values": [_HEADERS]},
-    ).execute()
-    return sheet_id
+_SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 
-def append_invoice(credentials: Credentials, sheet_id: str, row: dict) -> None:
-    service = _service(credentials)
-    values = [[str(row.get(h, "")) for h in _HEADERS]]
-    service.spreadsheets().values().append(
-        spreadsheetId=sheet_id,
-        range="Facturas!A1",
-        valueInputOption="USER_ENTERED",
-        insertDataOption="INSERT_ROWS",
-        body={"values": values},
-    ).execute()
+@lru_cache(maxsize=1)
+def _client() -> gspread.Client:
+    creds = service_account.Credentials.from_service_account_file(
+        os.environ["GOOGLE_SA_CREDENTIALS_FILE"], scopes=_SCOPES
+    )
+    return gspread.authorize(creds)
 
 
-def list_invoices(credentials: Credentials, sheet_id: str, month: str | None = None) -> list[dict]:
-    service = _service(credentials)
-    result = service.spreadsheets().values().get(
-        spreadsheetId=sheet_id,
-        range="Facturas!A1:J1000",
-    ).execute()
-    rows = result.get("values", [])
+@lru_cache(maxsize=1)
+def sa_email() -> str:
+    path = os.environ["GOOGLE_SA_CREDENTIALS_FILE"]
+    data = json.loads(open(path, encoding="utf-8").read())
+    return data.get("client_email", "")
+
+
+def extract_spreadsheet_id(text: str) -> str:
+    """Acepta URL completa de Google Sheets o directamente el spreadsheet ID."""
+    match = re.search(r"/spreadsheets/d/([a-zA-Z0-9_-]+)", text)
+    return match.group(1) if match else text.strip()
+
+
+class SheetAccessError(Exception):
+    """La Service Account no tiene acceso a la planilla indicada."""
+
+
+def connect_spreadsheet(text: str) -> str:
+    """Valida que la SA puede abrir la planilla del usuario. Devuelve el spreadsheet_id."""
+    spreadsheet_id = extract_spreadsheet_id(text)
+    if not spreadsheet_id:
+        raise ValueError("ID de planilla inválido.")
+    try:
+        _client().open_by_key(spreadsheet_id)
+    except gspread.exceptions.APIError as e:
+        if e.response.status_code == 403:
+            raise SheetAccessError(
+                f"Sin acceso. Compartí la planilla con {sa_email()} como Editor."
+            ) from e
+        raise
+    return spreadsheet_id
+
+
+ROW_KEYS = FIELD_KEYS + ["imagen", "cargada_el"]
+
+
+def append_invoice(spreadsheet_id: str, row: dict) -> None:
+    sheet = _client().open_by_key(spreadsheet_id).sheet1
+    values = [row.get(key, "") for key in ROW_KEYS]
+    sheet.append_row(values, value_input_option="USER_ENTERED")
+
+
+def list_invoices(spreadsheet_id: str, month: str | None = None) -> list[dict]:
+    sheet = _client().open_by_key(spreadsheet_id).sheet1
+    rows = sheet.get_all_values()
     if len(rows) <= 1:
         return []
     headers = rows[0]
