@@ -168,7 +168,7 @@
     btn.type = "button";
     btn.className = "btn-guardar";
     btn.textContent = "Guardar en Sheets";
-    btn.onclick = () => guardarCard(card, msgVal, r.img_token);
+    btn.onclick = () => guardarCard(card, msgVal);
     footer.appendChild(btn);
     card.appendChild(footer);
     return card;
@@ -243,9 +243,9 @@
     return valido;
   }
 
-  async function guardarCard(card, msgVal, imgToken) {
+  async function guardarCard(card, msgVal) {
     if (!validarCard(card, msgVal)) return;
-    const datos = { img_token: imgToken };
+    const datos = {};
     card.querySelectorAll(".campo-ctrl").forEach((ctl) => { datos[ctl.dataset.clave] = ctl.value.trim(); });
     const btn = card.querySelector(".btn-guardar");
     btn.disabled = true;

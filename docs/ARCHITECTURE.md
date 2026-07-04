@@ -14,10 +14,11 @@
 | AI / external APIs | Gemini (vision, `response_schema` estructurado) for invoice data extraction | 0001, 0004 |
 
 ## 2. System overview
-Foto/PDF (PWA, uno o varios) → Flask API → Gemini extrae los 9 campos → usuario revisa
-en tarjetas editables → Flask API → Service Account escribe la fila en el Sheet del
-usuario (`gspread`) + la imagen se guarda en disco del servidor → export a fin de mes
-desde la propia planilla.
+Foto/PDF (PWA, uno o varios) → Flask API → Gemini extrae los 9 campos (la imagen solo
+vive en memoria durante este paso, no se persiste — MVP sin storage de imagen, ver
+STATUS.md) → usuario revisa en tarjetas editables → Flask API → Service Account
+escribe la fila en el Sheet del usuario (`gspread`) → export a fin de mes desde la
+propia planilla.
 
 App DB (`User`) guarda solo: identidad de Google, `spreadsheet_id` conectado, estado de
 suscripción, contador de facturas del mes. No hay tokens OAuth que persistir — el login
@@ -39,7 +40,7 @@ o plantillas.
 | iva | number | vacío en Factura B/C si no se discrimina |
 | total | number | |
 | moneda | string | ARS / USD |
-| imagen | string | ruta del archivo guardado (ver storage.py) |
+| imagen | string | siempre vacío en el MVP — no se persiste la imagen (post-MVP) |
 | cargada_el | datetime | timestamp del guardado |
 
 ### User (app DB)
@@ -61,7 +62,7 @@ o plantillas.
 | GET | /auth/google, /oauth2callback | Login (identidad, sin scopes sensibles) | none |
 | POST | /api/sheet/connect | valida que la SA puede abrir la planilla y la guarda en el User | session |
 | POST | /api/extract | uno o varios archivos in → fields extraídos out (Gemini) por archivo | session |
-| POST | /api/invoices | guarda fila revisada en el Sheet (SA) + imagen en disco | session |
+| POST | /api/invoices | guarda fila revisada en el Sheet (SA); la imagen no se persiste (MVP) | session |
 | GET | /api/invoices?month= | list rows (from Sheet) | session |
 | POST | /api/export?month= | xlsx / share link for the month (pendiente) | session |
 | POST | /api/mp/webhook | Mercado Pago subscription events (pendiente) | signature |

@@ -26,13 +26,14 @@ centralizada escribe en la planilla del usuario, que la comparte como Editor una
   con `response_schema` estructurado en vez de parsear JSON a mano.
 
 ## Imagen del comprobante — abierto, no cerrado
-A diferencia de ADR-0002 (imagen en el Drive del usuario), por ahora la imagen se
-guarda en **disco local del servidor** (`app/services/storage.py`), una carpeta por
-usuario con nombre de archivo único por comprobante. Esto es interino:
-- En Render free el disco es efímero — se pierde en cada redeploy/restart.
-- Antes de producción hay que decidir entre: (a) Drive del usuario vía OAuth con scope
-  `drive.file` (reintroduce la necesidad de verificación de Google), o (b) storage
-  propio tipo S3/Cloudflare R2 (sin depender de Drive ni de scopes adicionales).
+A diferencia de ADR-0002 (imagen en el Drive del usuario), esta ADR probó guardarla en
+disco local del servidor como interino. **Actualización 2026-07-04:** se decidió sacar
+la persistencia de imagen del alcance del MVP directamente — no va ni a disco, ni a
+Drive, ni a S3/R2; se usa solo en memoria para la extracción y se descarta. Esto
+destraba el deploy sin depender de esa decisión. Se borró `app/services/storage.py`.
+Ver `docs/STATUS.md` para el detalle y el diseño ya definido (Drive del cliente,
+carpeta `Facturas/{año}/{mes}/`, nombre `{fecha}_{proveedor}_{numero}.jpg`) para
+cuando se retome como post-MVP.
 
 ## Alternativas consideradas
 - Mantener OAuth por usuario para Sheets — descartado: es la causa raíz del bloqueo

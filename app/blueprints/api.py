@@ -1,22 +1,15 @@
 import datetime
 import os
-import uuid
 
 from flask import Blueprint, jsonify, request, session
 
 from app.models import User, db
-from app.services import sheets, storage
+from app.services import sheets
 from app.services.fields import FIELD_KEYS
 from app.services.formats import MIME_EXTENSIONS
 from app.services.gemini import extract_invoice
 
 api_bp = Blueprint("api", __name__)
-
-# Server-side temp storage para imágenes pendientes de confirmar, aislado por
-# usuario: (user_id, img_token) → (bytes, mime). Vive en memoria de un solo
-# proceso — con más de un worker de gunicorn cada uno tiene su propio diccionario,
-# así que en producción hay que correr un solo worker mientras esto sea interino.
-_pending: dict[tuple[str, str], tuple[bytes, str]] = {}
 
 
 def _current_user() -> User | None:
@@ -61,6 +54,8 @@ def extract():
             resultados.append({"nombre": file.filename, "ok": False,
                                 "error": f"Formato no soportado ({mime_type})"})
             continue
+        # MVP sin persistencia: la imagen se lee en memoria solo para mandarla
+        # a Gemini y se descarta acá — no se guarda en ningún lado.
         image_bytes = file.read()
         try:
             fields = extract_invoice(image_bytes, mime_type)
@@ -68,9 +63,7 @@ def extract():
             resultados.append({"nombre": file.filename, "ok": False, "error": str(e)})
             continue
 
-        img_token = str(uuid.uuid4())
-        _pending[(user.id, img_token)] = (image_bytes, mime_type)
-        resultados.append({"nombre": file.filename, "ok": True, "fields": fields, "img_token": img_token})
+        resultados.append({"nombre": file.filename, "ok": True, "fields": fields})
 
     return jsonify(resultados)
 
@@ -84,16 +77,8 @@ def save_invoice():
         return jsonify({"ok": False, "error": "No hay planilla configurada. Andá a Configuración."}), 400
 
     data = request.get_json(force=True)
-    img_token = data.pop("img_token", None)
-
-    imagen = ""
-    pending_key = (user.id, img_token)
-    if img_token and pending_key in _pending:
-        image_bytes, mime_type = _pending.pop(pending_key)
-        imagen = storage.save_image(user.id, image_bytes, mime_type, datetime.datetime.now())
-
     row = {key: data.get(key, "") for key in FIELD_KEYS}
-    row["imagen"] = imagen
+    row["imagen"] = ""  # MVP sin persistencia de imagen — ver docs/STATUS.md
     row["cargada_el"] = datetime.datetime.now().isoformat()
 
     try:

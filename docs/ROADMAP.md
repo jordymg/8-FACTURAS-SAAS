@@ -7,10 +7,15 @@ Goal: one user (the founder) completes foto → extracción → revisión → Sh
 - [x] Prototipo del founder integrado: Service Account para Sheets, prompt/campos validados, UI multi-archivo con tarjetas (ver ADR-0004)
 - [x] Google OAuth flow (solo identidad) + pantalla de conexión de planilla (Service Account)
 - [x] PWA: captura multi-archivo (drag&drop) + tarjetas de revisión/edición
-- [x] POST /api/invoices: append row (Sheet vía SA) + guardado de imagen (disco local, interino)
+- [x] POST /api/invoices: append row (Sheet vía SA)
 - [x] Probado end-to-end en local con cuenta real: login → conectar planilla → foto → extracción → guardar → aparece en el Sheet
-- [ ] Decidir storage definitivo de imagen antes de producción: Drive del usuario (OAuth con verificación) vs. S3/R2 — depende de: decisión del founder
-- [ ] Deploy to Render (single service) — depends on: decisión de storage de imagen
+- [x] Decisión MVP: no persistir la imagen (ni disco, ni Drive, ni S3) — se usa solo en memoria para la extracción y se descarta. Destraba el deploy sin resolver el storage definitivo.
+- [ ] Deploy to Render (single service) — depends on: —
+
+## Post-MVP
+- [ ] Guardar la imagen del comprobante en el Drive del cliente (`Facturas/{año}/{mes}/`,
+      nombre `{fecha}_{proveedor}_{numero}.jpg`) — depende de: resultado del experimento
+      aislado de OAuth con scope `drive.file` (fuera de este repo, ver STATUS.md)
 
 Exit criterion: founder saves a real invoice from his phone to his own Sheet via the public URL. ✅ probado en local, falta el deploy público.
 
