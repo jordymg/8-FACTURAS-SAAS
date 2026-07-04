@@ -138,6 +138,8 @@
           if (op === val) opt.selected = true;
           ctrl.appendChild(opt);
         });
+        if (campo.required && !campo.options.includes(val)) ctrl.classList.add("campo-vacio");
+        ctrl.addEventListener("change", () => ctrl.classList.remove("campo-vacio", "campo-invalido"));
       } else {
         ctrl = document.createElement("input");
         ctrl.type = "text";

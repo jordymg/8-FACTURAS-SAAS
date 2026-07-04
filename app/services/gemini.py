@@ -25,14 +25,6 @@ _PROMPT = (
     '- Moneda: "ARS" si son pesos argentinos, "USD" si son dólares.'
 )
 
-FORMATOS_SOPORTADOS = {
-    "image/jpeg": "image/jpeg",
-    "image/png": "image/png",
-    "image/webp": "image/webp",
-    "application/pdf": "application/pdf",
-}
-
-
 def extract_invoice(image_bytes: bytes, mime_type: str = "image/jpeg") -> Optional[dict]:
     client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
     model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")

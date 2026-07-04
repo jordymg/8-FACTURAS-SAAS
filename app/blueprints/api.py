@@ -1,4 +1,5 @@
 import datetime
+import os
 import uuid
 
 from flask import Blueprint, jsonify, request, session
@@ -6,12 +7,16 @@ from flask import Blueprint, jsonify, request, session
 from app.models import User, db
 from app.services import sheets, storage
 from app.services.fields import FIELD_KEYS
+from app.services.formats import MIME_EXTENSIONS
 from app.services.gemini import extract_invoice
 
 api_bp = Blueprint("api", __name__)
 
-# Server-side temp storage for images awaiting confirmation (img_token → (bytes, mime))
-_pending: dict[str, tuple[bytes, str]] = {}
+# Server-side temp storage para imágenes pendientes de confirmar, aislado por
+# usuario: (user_id, img_token) → (bytes, mime). Vive en memoria de un solo
+# proceso — con más de un worker de gunicorn cada uno tiene su propio diccionario,
+# así que en producción hay que correr un solo worker mientras esto sea interino.
+_pending: dict[tuple[str, str], tuple[bytes, str]] = {}
 
 
 def _current_user() -> User | None:
@@ -28,9 +33,7 @@ def connect_sheet():
     data = request.get_json(force=True)
     try:
         spreadsheet_id = sheets.connect_spreadsheet(data.get("planilla", ""))
-    except sheets.SheetAccessError as e:
-        return jsonify({"ok": False, "error": str(e)})
-    except ValueError as e:
+    except (sheets.SheetAccessError, ValueError) as e:
         return jsonify({"ok": False, "error": str(e)})
 
     user.spreadsheet_id = spreadsheet_id
@@ -44,6 +47,9 @@ def extract():
     if not user:
         return jsonify({"error": "unauthorized"}), 401
 
+    if "GEMINI_API_KEY" not in os.environ:
+        return jsonify({"error": "Gemini no está configurado (falta GEMINI_API_KEY)."}), 500
+
     files = request.files.getlist("archivos") or request.files.getlist("image")
     if not files:
         return jsonify({"error": "missing files"}), 400
@@ -51,7 +57,7 @@ def extract():
     resultados = []
     for file in files:
         mime_type = file.content_type or "image/jpeg"
-        if mime_type not in ("image/jpeg", "image/png", "image/webp", "application/pdf"):
+        if mime_type not in MIME_EXTENSIONS:
             resultados.append({"nombre": file.filename, "ok": False,
                                 "error": f"Formato no soportado ({mime_type})"})
             continue
@@ -63,7 +69,7 @@ def extract():
             continue
 
         img_token = str(uuid.uuid4())
-        _pending[img_token] = (image_bytes, mime_type)
+        _pending[(user.id, img_token)] = (image_bytes, mime_type)
         resultados.append({"nombre": file.filename, "ok": True, "fields": fields, "img_token": img_token})
 
     return jsonify(resultados)
@@ -81,8 +87,9 @@ def save_invoice():
     img_token = data.pop("img_token", None)
 
     imagen = ""
-    if img_token and img_token in _pending:
-        image_bytes, mime_type = _pending.pop(img_token)
+    pending_key = (user.id, img_token)
+    if img_token and pending_key in _pending:
+        image_bytes, mime_type = _pending.pop(pending_key)
         imagen = storage.save_image(user.id, image_bytes, mime_type, datetime.datetime.now())
 
     row = {key: data.get(key, "") for key in FIELD_KEYS}

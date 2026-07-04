@@ -33,26 +33,34 @@ def extract_spreadsheet_id(text: str) -> str:
 
 
 class SheetAccessError(Exception):
-    """La Service Account no tiene acceso a la planilla indicada."""
+    """La Service Account no tiene acceso a la planilla, o la planilla es inválida."""
+
+
+ROW_KEYS = FIELD_KEYS + ["imagen", "cargada_el"]
 
 
 def connect_spreadsheet(text: str) -> str:
-    """Valida que la SA puede abrir la planilla del usuario. Devuelve el spreadsheet_id."""
+    """Valida que la SA puede abrir la planilla del usuario y le escribe el
+    encabezado si está vacía. Devuelve el spreadsheet_id."""
     spreadsheet_id = extract_spreadsheet_id(text)
     if not spreadsheet_id:
         raise ValueError("ID de planilla inválido.")
     try:
-        _client().open_by_key(spreadsheet_id)
+        sheet = _client().open_by_key(spreadsheet_id).sheet1
     except gspread.exceptions.APIError as e:
         if e.response.status_code == 403:
             raise SheetAccessError(
                 f"Sin acceso. Compartí la planilla con {sa_email()} como Editor."
             ) from e
-        raise
+        raise SheetAccessError(f"No se pudo abrir la planilla: {e}") from e
+    except Exception as e:
+        raise SheetAccessError(f"No se pudo abrir la planilla: {e}") from e
+
+    if not sheet.get_all_values():
+        sheet.append_row(ROW_KEYS, value_input_option="USER_ENTERED")
+        sheet.format(f"A1:{chr(64 + len(ROW_KEYS))}1", {"textFormat": {"bold": True}})
+
     return spreadsheet_id
-
-
-ROW_KEYS = FIELD_KEYS + ["imagen", "cargada_el"]
 
 
 def append_invoice(spreadsheet_id: str, row: dict) -> None:
