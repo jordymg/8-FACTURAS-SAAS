@@ -42,22 +42,18 @@ Falta deploy a producción.
    Google Cloud Console, para el mismo client OAuth que se usa hoy. Ya no depende de
    resolver el storage de imagen (se sacó de este alcance, ver Done).
 
-2. **Decidir si se retoma el canal de WhatsApp del prototipo.**
-   Qué: el archivo `app.py` original (webhook de Twilio) no se integró a este repo,
-   quedó en pausa tal como estaba en el prototipo.
-   Dónde: no existe en el repo actual — solo queda documentado acá y en el ADR-0004.
-   Qué se necesita: una cuenta de Twilio (Account SID + Auth Token) y decidir si tiene
-   sentido antes o después de tener los primeros clientes pagando por la interfaz web.
-
 ## Post-MVP (no bloquea nada de lo de arriba)
 - Guardar la imagen del comprobante en el Drive del cliente, en vez de descartarla.
   Carpeta y nombre ya definidos: `Facturas/{año}/{mes}/`, archivo
   `{fecha}_{proveedor}_{numero}.jpg`. Depende de: el resultado de un experimento
   aislado de OAuth con scope `drive.file` que se está probando fuera de este repo
-  (por la fricción de `redirect_uri_mismatch` que tuvimos hoy con OAuth). Cuando
+  (por la fricción de `redirect_uri_mismatch` que tuvimos con OAuth). Cuando
   funcione ahí, se porta el código a `app/services/` (el módulo `storage.py` que
   hacía esto se borró — hay que recrearlo) + se agrega el scope en
   `app/blueprints/auth.py` + un campo nuevo en `app/models.py` para el token de Drive.
+- Canal de WhatsApp (`app.py` del prototipo, webhook de Twilio). Decidido que NO va
+  en el MVP. No se integró a este repo, queda solo documentado acá y en el ADR-0004.
+  Si se retoma más adelante, necesita una cuenta de Twilio (Account SID + Auth Token).
 
 ## Blocked
 - Nada bloqueado en este momento — Gemini y Sheets funcionando con las credenciales del
@@ -74,3 +70,4 @@ Falta deploy a producción.
 - 2026-07-04: MVP sin persistencia de imagen — se saca del alcance guardar la foto
   (ni disco, ni Drive, ni S3), para destrabar el deploy a Render sin depender de esa
   decisión. Guardarla en el Drive del cliente queda como post-MVP.
+- 2026-07-05: el canal de WhatsApp del prototipo NO va en el MVP — queda como post-MVP.
