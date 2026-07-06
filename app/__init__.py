@@ -1,6 +1,7 @@
 import os
 from flask import Flask
 from dotenv import load_dotenv
+from werkzeug.middleware.proxy_fix import ProxyFix
 from app.models import db
 
 load_dotenv()
@@ -9,6 +10,10 @@ load_dotenv()
 def create_app() -> Flask:
     app = Flask(__name__, static_folder="../static", template_folder="../templates")
     app.secret_key = os.environ["SECRET_KEY"]
+    # Render (y la mayoría de los hosts) terminan TLS en un proxy y reenvían por HTTP
+    # puertas adentro. Sin esto, Flask ve el request como http y oauthlib rechaza el
+    # login (InsecureTransportError) aunque el usuario esté en https de verdad.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
     db_url = os.getenv("DATABASE_URL", "sqlite:///app.db")
     # Render supplies postgres:// but SQLAlchemy 1.4+ requires postgresql://

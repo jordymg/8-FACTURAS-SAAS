@@ -8,13 +8,15 @@ services:
     envVars:
       - key: SECRET_KEY
         generateValue: true
-      - key: TOKENS_KEY
-        sync: false
       - key: GEMINI_API_KEY
         sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_SA_CREDENTIALS_JSON
         sync: false
       - key: DATABASE_URL
         fromDatabase:

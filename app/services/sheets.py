@@ -11,19 +11,25 @@ from app.services.fields import FIELD_KEYS
 _SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 
+def _sa_info() -> dict:
+    """Credenciales de la Service Account: como JSON en una variable de entorno
+    (Render, producción) o como archivo en disco (local, ver .env)."""
+    raw = os.getenv("GOOGLE_SA_CREDENTIALS_JSON")
+    if raw:
+        return json.loads(raw)
+    path = os.environ["GOOGLE_SA_CREDENTIALS_FILE"]
+    return json.loads(open(path, encoding="utf-8").read())
+
+
 @lru_cache(maxsize=1)
 def _client() -> gspread.Client:
-    creds = service_account.Credentials.from_service_account_file(
-        os.environ["GOOGLE_SA_CREDENTIALS_FILE"], scopes=_SCOPES
-    )
+    creds = service_account.Credentials.from_service_account_info(_sa_info(), scopes=_SCOPES)
     return gspread.authorize(creds)
 
 
 @lru_cache(maxsize=1)
 def sa_email() -> str:
-    path = os.environ["GOOGLE_SA_CREDENTIALS_FILE"]
-    data = json.loads(open(path, encoding="utf-8").read())
-    return data.get("client_email", "")
+    return _sa_info().get("client_email", "")
 
 
 def extract_spreadsheet_id(text: str) -> str:
