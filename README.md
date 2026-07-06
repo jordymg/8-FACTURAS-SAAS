@@ -27,6 +27,8 @@ flask --app wsgi run
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Fases y tareas |
 | [`docs/STATUS.md`](docs/STATUS.md) | Estado vivo del proyecto |
 | [`docs/WORKFLOW.md`](docs/WORKFLOW.md) | Protocolo multi-IA y handoffs |
+| [`docs/ISSUES.md`](docs/ISSUES.md) | Log de problemas que tocaron datos reales o sorprendieron |
+| [`docs/areas/`](docs/areas/) | Unidades de I+D por producto (ej. la planilla) |
 | [`VALIDATION.md`](VALIDATION.md) | Gate 4/4 y evidencia |
 
 ## Modelo de negocio
