@@ -1,3 +1,4 @@
+import datetime
 import json
 import os
 import re
@@ -88,6 +89,20 @@ def connect_spreadsheet(text: str) -> str:
         sheet.update([ROW_KEYS], range_name=f"A1:{last_col}1", value_input_option="USER_ENTERED")
         sheet.format(f"A1:{last_col}1", {"textFormat": {"bold": True}})
 
+        # Reglas de integridad y formato visual — ver docs/areas/planillas/
+        # (punto 5 y ADR-0004). Se aplican una sola vez, al crear el encabezado.
+        sheet.add_protected_range(
+            f"A1:{last_col}1",
+            editor_users_emails=[sa_email()],
+            description="Encabezado de la planilla - no editar a mano",
+        )
+        # Fecha: se guarda AAAA-MM-DD (columna A), se muestra DD/MM/AAAA.
+        sheet.format("A:A", {"numberFormat": {"type": "DATE", "pattern": "dd/mm/yyyy"}})
+        # Moneda: valor numérico real (columnas F/G/H = neto/iva/total), se muestra con formato de moneda.
+        sheet.format("F:H", {"numberFormat": {"type": "CURRENCY", "pattern": '"$"#,##0.00'}})
+        sheet.freeze(rows=1)
+        sheet.columns_auto_resize(0, len(ROW_KEYS))
+
     return spreadsheet_id
 
 
@@ -101,13 +116,29 @@ def append_invoice(spreadsheet_id: str, row: dict) -> None:
     sheet.update([values], range_name=f"A{next_row}:{last_col}{next_row}", value_input_option="USER_ENTERED")
 
 
+_SHEETS_EPOCH = datetime.date(1899, 12, 30)
+
+
+def _serial_to_iso_date(value) -> str:
+    """La columna fecha se guarda como fecha real de Sheets (para que el
+    formato DD/MM/AAAA del ADR-0004 y las fórmulas por mes del ADR-0002
+    funcionen), así que al leerla sin formato viene como número de serie de
+    Sheets, no como el string original. La convertimos de vuelta a AAAA-MM-DD."""
+    if isinstance(value, (int, float)):
+        return (_SHEETS_EPOCH + datetime.timedelta(days=int(value))).isoformat()
+    return str(value)
+
+
 def list_invoices(spreadsheet_id: str, month: str | None = None) -> list[dict]:
     sheet = _client().open_by_key(spreadsheet_id).sheet1
-    rows = sheet.get_all_values()
+    rows = sheet.get_all_values(value_render_option="UNFORMATTED_VALUE")
     if len(rows) <= 1:
         return []
     headers = rows[0]
     invoices = [dict(zip(headers, row)) for row in rows[1:]]
+    for inv in invoices:
+        if "fecha" in inv:
+            inv["fecha"] = _serial_to_iso_date(inv["fecha"])
     if month:
         invoices = [inv for inv in invoices if inv.get("fecha", "").startswith(month)]
     return invoices
