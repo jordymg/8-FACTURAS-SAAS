@@ -8,8 +8,14 @@ conectada vía Service Account. Probada end-to-end con datos reales. Issue #001
 **ya están implementados**: metodología de cálculo (ADR-0002), integridad
 parcial — encabezado protegido (ADR punto 5) — y formato visual (ADR-0004:
 fecha AAAA-MM-DD mostrada DD/MM/AAAA, moneda con formato `$`, fila congelada,
-ancho de columna ajustado). Todo se aplica una sola vez, al crear el
-encabezado en `connect_spreadsheet()`.
+ancho de columna ajustado). Se aplica en `connect_spreadsheet()` **cada vez**
+que se conecta una planilla, no solo la primera vez — incluye planillas que
+ya tenían datos y un encabezado propio (con otros nombres de columna): el
+encabezado se reescribe con los textos canónicos (los datos no se tocan), y
+el formato de fecha/moneda aplica retroactivamente a las filas viejas
+también, siempre que se hayan guardado con la app (quedan como fecha/número
+reales, no texto). Verificado en producción sobre una planilla real que ya
+tenía facturas cargadas.
 
 Efecto colateral encontrado y arreglado: al pasar la fecha a un valor de
 fecha real (para que el formato visual funcione), `list_invoices()` filtraba

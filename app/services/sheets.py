@@ -81,29 +81,44 @@ def connect_spreadsheet(text: str) -> str:
     except Exception as e:
         raise SheetAccessError(f"No se pudo abrir la planilla: {e}") from e
 
-    if _real_row_count(sheet) == 0:
-        last_col = _last_col_letter(len(ROW_KEYS))
-        # Escribimos con un rango de celdas explícito (A1:K1), no con
-        # append_row: dejar que la API "adivine" dónde está la tabla es lo que
-        # causaba el Issue #001 (facturas desencolumnadas). Ver docs/ISSUES.md.
-        sheet.update([ROW_KEYS], range_name=f"A1:{last_col}1", value_input_option="USER_ENTERED")
-        sheet.format(f"A1:{last_col}1", {"textFormat": {"bold": True}})
+    last_col = _last_col_letter(len(ROW_KEYS))
 
-        # Reglas de integridad y formato visual — ver docs/areas/planillas/
-        # (punto 5 y ADR-0004). Se aplican una sola vez, al crear el encabezado.
+    # El encabezado se (re)escribe siempre con nuestros textos canónicos, aun
+    # si la planilla ya tenía datos y un encabezado propio (con otros nombres
+    # de columna, typos, etc.) — así "Últimas facturas" en la app siempre
+    # encuentra las claves que espera (proveedor, moneda...). Los datos ya
+    # cargados (fila 2 en adelante) no se tocan. Rango explícito, no
+    # append_row (ver Issue #001 en docs/ISSUES.md).
+    sheet.update([ROW_KEYS], range_name=f"A1:{last_col}1", value_input_option="USER_ENTERED")
+    sheet.format(f"A1:{last_col}1", {"textFormat": {"bold": True}})
+
+    # Reglas de integridad y formato visual — ver docs/areas/planillas/
+    # (punto 5 y ADR-0004). Se aplican siempre (planilla nueva o ya
+    # existente), no solo la primera vez.
+    _protect_header_once(sheet, last_col)
+    # Fecha: se guarda AAAA-MM-DD (columna A), se muestra DD/MM/AAAA.
+    sheet.format("A:A", {"numberFormat": {"type": "DATE", "pattern": "dd/mm/yyyy"}})
+    # Moneda: valor numérico real (columnas F/G/H = neto/iva/total), se muestra con formato de moneda.
+    sheet.format("F:H", {"numberFormat": {"type": "CURRENCY", "pattern": '"$"#,##0.00'}})
+    sheet.freeze(rows=1)
+    sheet.columns_auto_resize(0, len(ROW_KEYS))
+
+    return spreadsheet_id
+
+
+def _protect_header_once(sheet: gspread.Worksheet, last_col: str) -> None:
+    """Protege A1:{last_col}1 — pero no duplica la protección si reconectan
+    la misma planilla más de una vez."""
+    already_protected = any(
+        pr["range"].get("startRowIndex") == 0 and pr["range"].get("endRowIndex") == 1
+        for pr in sheet.spreadsheet.list_protected_ranges(sheet.id)
+    )
+    if not already_protected:
         sheet.add_protected_range(
             f"A1:{last_col}1",
             editor_users_emails=[sa_email()],
             description="Encabezado de la planilla - no editar a mano",
         )
-        # Fecha: se guarda AAAA-MM-DD (columna A), se muestra DD/MM/AAAA.
-        sheet.format("A:A", {"numberFormat": {"type": "DATE", "pattern": "dd/mm/yyyy"}})
-        # Moneda: valor numérico real (columnas F/G/H = neto/iva/total), se muestra con formato de moneda.
-        sheet.format("F:H", {"numberFormat": {"type": "CURRENCY", "pattern": '"$"#,##0.00'}})
-        sheet.freeze(rows=1)
-        sheet.columns_auto_resize(0, len(ROW_KEYS))
-
-    return spreadsheet_id
 
 
 def append_invoice(spreadsheet_id: str, row: dict) -> None:
