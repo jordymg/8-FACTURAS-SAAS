@@ -43,3 +43,7 @@ con la versión incluida, commit y push.
 
 ## Regla
 Sesión que no cierra actualizando STATUS.md = información perdida para las demás IAs.
+
+## Áreas
+`docs/areas/{nombre}/` son unidades de I+D por producto. Cada una tiene
+README (alcance), PRODUCTO.md (definición), STATUS.md y `decisions/` propios.
