@@ -28,6 +28,13 @@ todavía, pero a tener en cuenta si más adelante se necesita el CUIT exacto
 como texto (ceros a la izquierda, etc.).
 
 ## Next
-Retomar el ADR-0003 (pestañas por período) cuando se discuta: cómo se pasa
-de un período a otro, y qué pasa con el filtro por mes y las fórmulas de
-total anual (ADR-0002) si los datos quedan repartidos en varias pestañas.
+1. **Implementar la estructura v2** (ADR-0005, 22 columnas — IVA por
+   alícuota, percepciones, retenciones, y la regla CAE ausente → Tipo
+   Factura = "X"). Falta cerrar antes de programar: cómo se completan
+   Categoría y CUENTA (¿IA, usuario, o quedan vacías?). Implica reescribir
+   el prompt de Gemini, `fields.py`, `sheets.py` (encabezado/formato/ancho de
+   columna fijo por columna) y el formulario de revisión del frontend.
+2. Retomar el ADR-0003 (pestañas por período) cuando se discuta: cómo se
+   pasa de un período a otro, y qué pasa con el filtro por mes y las
+   fórmulas de total anual (ADR-0002) si los datos quedan repartidos en
+   varias pestañas.

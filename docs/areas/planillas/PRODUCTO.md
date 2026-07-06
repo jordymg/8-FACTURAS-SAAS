@@ -10,6 +10,12 @@ lo que el cliente efectivamente usa día a día y le entrega a su contador a fin
 de mes. Ver [`docs/PRD.md`](../../PRD.md).
 
 ## 2. Estructura
+> **Esto describe la v1, la que está hoy en código.** Ya se decidió pasar a
+> una v2 de 22 columnas — ver
+> [`decisions/0005-estructura-v2.md`](decisions/0005-estructura-v2.md).
+> Implementación pendiente (falta cerrar cómo se completan Categoría y
+> CUENTA antes de programarlo).
+
 1 pestaña (`sheet1`, la primera hoja de la planilla), 9 columnas de datos +
 2 columnas de metadata que escribe la app:
 
@@ -95,12 +101,15 @@ Resumen:
 - Implementación pendiente en `connect_spreadsheet()`.
 
 ## 7. Versionado
-La estructura actual es **v1** (9 columnas + imagen + cargada_el, definida
-2026-07-04 al integrar el prototipo del founder — ver
+La estructura en código hoy es **v1** (9 columnas + imagen + cargada_el,
+definida 2026-07-04 al integrar el prototipo del founder — ver
 [ADR-0004 del repo general](../../decisions/0004-service-account-sheets.md),
-no confundir con el ADR-0004 de esta área). Todo cambio de estructura
-(agregar/sacar/renombrar columnas, nueva plantilla) se decide en esta área,
-con un ADR en `decisions/`.
+no confundir con el ADR-0004 de esta área). **v2** (22 columnas, alineada a
+categorías impositivas reales — IVA por alícuota, percepciones, retenciones)
+ya está decidida en
+[`decisions/0005-estructura-v2.md`](decisions/0005-estructura-v2.md), pendiente
+de implementar. Todo cambio de estructura (agregar/sacar/renombrar columnas,
+nueva plantilla) se decide en esta área, con un ADR en `decisions/`.
 
 ## 8. Backlog de ideas
 - Totales mensuales (fila o pestaña de resumen).
