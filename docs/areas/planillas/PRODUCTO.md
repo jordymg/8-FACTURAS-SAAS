@@ -34,11 +34,22 @@ Definido en código en `app/services/fields.py` (columnas A-I) y
 primera vez que se conecta una planilla vacía. Las columnas J y K son
 metadata de la app, no datos que el usuario deba completar.
 
-## 3. Metodología de cálculo — ABIERTO
-Qué se resuelve con fórmulas dentro del propio Sheet (ej. un total mensual,
-validación de que neto+iva=total) vs. qué calcula Python antes de escribir la
-fila. Hoy: todo lo que se escribe viene calculado (o extraído) del lado de
-Python: no hay fórmulas en el Sheet. A decidir con el founder.
+## 3. Metodología de cálculo — ADOPTADA (ver ADR-0002)
+Enfoque mixto: fórmula en el Sheet si es simple y fija, Python si involucra
+lógica, validación o transformación. Detalle completo en
+[`decisions/0002-metodologia-calculo.md`](decisions/0002-metodologia-calculo.md).
+
+Resumen:
+- **Fórmulas en el Sheet**: total mensual, IVA acumulado, neto acumulado,
+  cantidad de facturas del mes, total por proveedor, total anual, columna de
+  control neto+iva=total, promedio de gasto mensual.
+- **Python antes de escribir**: normalización de fecha (dd/mm/aaaa) y de
+  proveedor, validación de CUIT (dígito verificador), detección de
+  duplicados (cuit+numero), cálculo de neto/iva si falta, asignación de fila
+  correcta (Issue #001), conversión USD (cotización pendiente de definir),
+  ID interno.
+- **Pendiente de clasificar**: pestaña "Resumen" anual (¿fórmulas vivas o
+  regenerada por Python?), resaltado de filas corregidas a mano.
 
 ## 4. Ciclo de vida
 1. **Creación**: hoy, manual — el usuario crea la planilla en Google Sheets a
