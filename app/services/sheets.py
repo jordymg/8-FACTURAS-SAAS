@@ -7,7 +7,7 @@ from functools import lru_cache
 import gspread
 from google.oauth2 import service_account
 
-from app.services.fields import FIELD_KEYS
+from app.services.fields import FIELDS, FIELD_KEYS
 
 _SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
@@ -43,12 +43,60 @@ class SheetAccessError(Exception):
     """La Service Account no tiene acceso a la planilla, o la planilla es inválida."""
 
 
-ROW_KEYS = FIELD_KEYS + ["imagen", "cargada_el"]
+# Orden completo de columnas de la planilla — estructura v2 (ADR-0005 +
+# ADR-0006, docs/areas/planillas/decisions/). cod_proveedor y cuenta no las
+# completa ni la IA ni el usuario, quedan en blanco (ver ADR-0006).
+# cargada_el la completa la app automáticamente.
+ROW_KEYS = [
+    "fecha", "proveedor", "cod_proveedor", "cuit", "categoria", "cuenta",
+    "tipo", "punto_venta", "numero", "neto", "iva_105", "iva_21", "iva_27",
+    "perc_iva", "perc_iibb_arba", "iibb_caba", "ret_ganancias", "ret_iva",
+    "sirtac", "imp_internos", "total", "moneda", "cargada_el",
+]
+
+# Texto de encabezado (lo que ve el cliente/contador) — distinto de la clave
+# interna que usa el código. Ver tabla del ADR-0005 para el texto exacto.
+_EXTRA_LABELS = {
+    "cod_proveedor": "Cód. Proveedor",
+    "cuenta": "CUENTA",
+    "cargada_el": "Fecha de Carga",
+}
+_FIELD_LABELS = {f["key"]: f["label"] for f in FIELDS}
+ROW_LABELS = [_FIELD_LABELS.get(key, _EXTRA_LABELS.get(key, key)) for key in ROW_KEYS]
+
+# Anchos de columna fijos (en píxeles) — reemplaza el auto-resize, que dejaba
+# algunas columnas muy angostas. Ajustable a mano en Sheets después; esto es
+# solo el punto de partida al crear/reconectar una planilla.
+_COLUMN_WIDTHS = {
+    "fecha": 95, "proveedor": 220, "cod_proveedor": 110, "cuit": 110,
+    "categoria": 130, "cuenta": 90, "tipo": 95, "punto_venta": 95,
+    "numero": 100, "neto": 100, "iva_105": 90, "iva_21": 85, "iva_27": 85,
+    "perc_iva": 95, "perc_iibb_arba": 110, "iibb_caba": 95,
+    "ret_ganancias": 110, "ret_iva": 90, "sirtac": 85, "imp_internos": 100,
+    "total": 110, "moneda": 80, "cargada_el": 140,
+}
+
+# Columnas con montos — se muestran con formato de moneda (ADR-0004).
+_MONEY_KEYS = [
+    "neto", "iva_105", "iva_21", "iva_27", "perc_iva", "perc_iibb_arba",
+    "iibb_caba", "ret_ganancias", "ret_iva", "sirtac", "imp_internos", "total",
+]
+
+# Estas columnas son identificadores, no cantidades — si se dejan como
+# USER_ENTERED, Sheets las interpreta como número y pierden los ceros a la
+# izquierda (ej. "0014" → 14, "00017367" → 17367). Se fuerzan a texto con el
+# truco estándar de Sheets: un apóstrofe inicial (no queda visible, solo le
+# dice a Sheets "no lo interpretes como número").
+_FORCE_TEXT_KEYS = {"cuit", "punto_venta", "numero"}
 
 
 def _last_col_letter(n: int) -> str:
     """Letra de columna A1 para la n-ésima columna (1-indexed, hasta 26)."""
     return chr(64 + n)
+
+
+def _col_letter_of(key: str) -> str:
+    return _last_col_letter(ROW_KEYS.index(key) + 1)
 
 
 def _real_row_count(sheet: gspread.Worksheet) -> int:
@@ -89,19 +137,21 @@ def connect_spreadsheet(text: str) -> str:
     # encuentra las claves que espera (proveedor, moneda...). Los datos ya
     # cargados (fila 2 en adelante) no se tocan. Rango explícito, no
     # append_row (ver Issue #001 en docs/ISSUES.md).
-    sheet.update([ROW_KEYS], range_name=f"A1:{last_col}1", value_input_option="USER_ENTERED")
+    sheet.update([ROW_LABELS], range_name=f"A1:{last_col}1", value_input_option="USER_ENTERED")
     sheet.format(f"A1:{last_col}1", {"textFormat": {"bold": True}})
 
     # Reglas de integridad y formato visual — ver docs/areas/planillas/
     # (punto 5 y ADR-0004). Se aplican siempre (planilla nueva o ya
     # existente), no solo la primera vez.
     _protect_header_once(sheet, last_col)
-    # Fecha: se guarda AAAA-MM-DD (columna A), se muestra DD/MM/AAAA.
-    sheet.format("A:A", {"numberFormat": {"type": "DATE", "pattern": "dd/mm/yyyy"}})
-    # Moneda: valor numérico real (columnas F/G/H = neto/iva/total), se muestra con formato de moneda.
-    sheet.format("F:H", {"numberFormat": {"type": "CURRENCY", "pattern": '"$"#,##0.00'}})
+    # Fecha: se guarda AAAA-MM-DD, se muestra DD/MM/AAAA.
+    fecha_col = _col_letter_of("fecha")
+    sheet.format(f"{fecha_col}:{fecha_col}", {"numberFormat": {"type": "DATE", "pattern": "dd/mm/yyyy"}})
+    # Moneda: valor numérico real en las columnas de montos, se muestra con formato de moneda.
+    money_range = f"{_col_letter_of(_MONEY_KEYS[0])}:{_col_letter_of(_MONEY_KEYS[-1])}"
+    sheet.format(money_range, {"numberFormat": {"type": "CURRENCY", "pattern": '"$"#,##0.00'}})
     sheet.freeze(rows=1)
-    sheet.columns_auto_resize(0, len(ROW_KEYS))
+    _apply_column_widths(sheet)
 
     return spreadsheet_id
 
@@ -121,9 +171,52 @@ def _protect_header_once(sheet: gspread.Worksheet, last_col: str) -> None:
         )
 
 
+def _apply_column_widths(sheet: gspread.Worksheet) -> None:
+    requests = [
+        {
+            "updateDimensionProperties": {
+                "range": {
+                    "sheetId": sheet.id,
+                    "dimension": "COLUMNS",
+                    "startIndex": i,
+                    "endIndex": i + 1,
+                },
+                "properties": {"pixelSize": _COLUMN_WIDTHS[key]},
+                "fields": "pixelSize",
+            }
+        }
+        for i, key in enumerate(ROW_KEYS)
+    ]
+    sheet.spreadsheet.batch_update({"requests": requests})
+
+
+def _to_number_or_blank(value):
+    """Convierte a float de verdad en vez de dejarlo como string.
+
+    Si mandamos "13192.36" como texto con USER_ENTERED, Sheets intenta
+    parsearlo según la configuración regional de la planilla — en una
+    planilla en español (coma decimal) un punto decimal no se reconoce como
+    número y queda como texto (rompe el formato de moneda y las fórmulas del
+    ADR-0002). Mandar un número de Python de verdad evita depender de la
+    configuración regional."""
+    if value in (None, ""):
+        return ""
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return value
+
+
 def append_invoice(spreadsheet_id: str, row: dict) -> None:
     sheet = _client().open_by_key(spreadsheet_id).sheet1
-    values = [row.get(key, "") for key in ROW_KEYS]
+    values = []
+    for key in ROW_KEYS:
+        val = row.get(key, "")
+        if key in _FORCE_TEXT_KEYS and val:
+            val = f"'{val}"
+        elif key in _MONEY_KEYS:
+            val = _to_number_or_blank(val)
+        values.append(val)
     # Calculamos nosotros la próxima fila libre y escribimos en un rango
     # explícito — no usamos append_row (ver Issue #001 en docs/ISSUES.md).
     next_row = _real_row_count(sheet) + 1
@@ -149,8 +242,10 @@ def list_invoices(spreadsheet_id: str, month: str | None = None) -> list[dict]:
     rows = sheet.get_all_values(value_render_option="UNFORMATTED_VALUE")
     if len(rows) <= 1:
         return []
-    headers = rows[0]
-    invoices = [dict(zip(headers, row)) for row in rows[1:]]
+    # Zipeamos contra ROW_KEYS (nuestras claves internas), no contra el texto
+    # real de la fila 1 — ese es el encabezado legible para el cliente
+    # (ROW_LABELS), no necesariamente igual a la clave que usa el código.
+    invoices = [dict(zip(ROW_KEYS, row)) for row in rows[1:]]
     for inv in invoices:
         if "fecha" in inv:
             inv["fecha"] = _serial_to_iso_date(inv["fecha"])

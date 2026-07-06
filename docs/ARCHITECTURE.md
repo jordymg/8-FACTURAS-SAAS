@@ -14,7 +14,7 @@
 | AI / external APIs | Gemini (vision, `response_schema` estructurado) for invoice data extraction | 0001, 0004 |
 
 ## 2. System overview
-Foto/PDF (PWA, uno o varios) → Flask API → Gemini extrae los 9 campos (la imagen solo
+Foto/PDF (PWA, uno o varios) → Flask API → Gemini extrae ~20 campos (la imagen solo
 vive en memoria durante este paso, no se persiste — MVP sin storage de imagen, ver
 STATUS.md) → usuario revisa en tarjetas editables → Flask API → Service Account
 escribe la fila en el Sheet del usuario (`gspread`) → export a fin de mes desde la
@@ -25,23 +25,18 @@ suscripción, contador de facturas del mes. No hay tokens OAuth que persistir �
 es solo para identidad, la Service Account hace todo el acceso a Sheets.
 
 ## 3. Data model
-### Invoice row (en la planilla del usuario, plantilla "Facturas AFIP")
-Definido en `app/services/fields.py` — único lugar a tocar si cambian/agregan campos
-o plantillas.
+### Invoice row (en la planilla del usuario) — estructura v2
+23 columnas, alineadas a categorías impositivas reales de un libro de compras
+argentino (IVA por alícuota, percepciones, retenciones). Definición completa,
+con el porqué de cada columna, en
+[`docs/areas/planillas/decisions/0005-estructura-v2.md`](areas/planillas/decisions/0005-estructura-v2.md)
++ [`0006-categoria-cuenta-cod-proveedor.md`](areas/planillas/decisions/0006-categoria-cuenta-cod-proveedor.md).
 
-| Field | Type | Notes |
-|-------|------|-------|
-| fecha | date | AAAA-MM-DD |
-| proveedor | string | razón social del emisor |
-| cuit | string | CUIT del emisor, 11 dígitos |
-| tipo | string | Factura A/B/C, Presupuesto, Nota de Crédito, etc. |
-| numero | string | punto de venta + número |
-| neto | number | vacío en Factura B/C si no se discrimina |
-| iva | number | vacío en Factura B/C si no se discrimina |
-| total | number | |
-| moneda | string | ARS / USD |
-| imagen | string | siempre vacío en el MVP — no se persiste la imagen (post-MVP) |
-| cargada_el | datetime | timestamp del guardado |
+Los ~20 campos que extrae la IA y edita el usuario están en
+`app/services/fields.py` — único lugar a tocar si cambian/agregan campos.
+`app/services/sheets.py::ROW_KEYS` arma el orden completo de columnas
+(agrega `cod_proveedor`, `cuenta` — siempre en blanco, ver ADR-0006 — y
+`cargada_el`, automático).
 
 ### User (app DB)
 | Field | Type | Notes |

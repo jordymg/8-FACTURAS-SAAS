@@ -1,7 +1,7 @@
 # ADR-0005 (planillas): Estructura v2 de la planilla
 
 **Date:** 2026-07-06
-**Status:** ADOPTADA — sin puntos abiertos (ver ADR-0006), implementación pendiente, ver sección final
+**Status:** ADOPTADA e IMPLEMENTADA (2026-07-06) — ver `docs/areas/planillas/STATUS.md` para detalle de la implementación y bugs encontrados en el camino
 
 ## Contexto
 La v1 (9 campos + imagen + cargada_el, ADR-0004 del repo general) era una

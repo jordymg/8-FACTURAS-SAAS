@@ -7,17 +7,6 @@
   "guardando": "Guardando…",
   "guardado": "Factura guardada.",
   "sin_facturas": "Sin facturas aún.",
-  "labels": {
-    "fecha": "Fecha",
-    "proveedor": "Proveedor",
-    "cuit": "CUIT",
-    "tipo": "Tipo",
-    "numero": "Número",
-    "neto": "Neto",
-    "iva": "IVA",
-    "total": "Total",
-    "moneda": "Moneda"
-  },
   "config": {
     "titulo": "Conectá tu planilla",
     "subtitulo": "Para guardar comprobantes necesitás vincular tu Google Sheets.",

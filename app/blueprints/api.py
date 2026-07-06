@@ -78,7 +78,6 @@ def save_invoice():
 
     data = request.get_json(force=True)
     row = {key: data.get(key, "") for key in FIELD_KEYS}
-    row["imagen"] = ""  # MVP sin persistencia de imagen — ver docs/STATUS.md
     row["cargada_el"] = datetime.datetime.now().isoformat()
 
     try:

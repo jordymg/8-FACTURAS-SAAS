@@ -1,41 +1,45 @@
 # STATUS — Área Planillas
 
 ## Estado actual
-Planilla v1 en producción (Render), creada manualmente por cada usuario y
-conectada vía Service Account. Probada end-to-end con datos reales. Issue #001
-(facturas desalineadas de columna) diagnosticado y resuelto — ver
-`docs/ISSUES.md`. Los 3 puntos ABIERTOS de `PRODUCTO.md` ya tienen decisión y
-**ya están implementados**: metodología de cálculo (ADR-0002), integridad
-parcial — encabezado protegido (ADR punto 5) — y formato visual (ADR-0004:
-fecha AAAA-MM-DD mostrada DD/MM/AAAA, moneda con formato `$`, fila congelada,
-ancho de columna ajustado). Se aplica en `connect_spreadsheet()` **cada vez**
-que se conecta una planilla, no solo la primera vez — incluye planillas que
-ya tenían datos y un encabezado propio (con otros nombres de columna): el
-encabezado se reescribe con los textos canónicos (los datos no se tocan), y
-el formato de fecha/moneda aplica retroactivamente a las filas viejas
-también, siempre que se hayan guardado con la app (quedan como fecha/número
-reales, no texto). Verificado en producción sobre una planilla real que ya
-tenía facturas cargadas.
+**Estructura v2 implementada** (ADR-0005 + ADR-0006, 23 columnas — IVA por
+alícuota, percepciones, retenciones, Cód. Proveedor, Categoría clasificada
+libremente por la IA, CUENTA en blanco, regla CAE ausente → Tipo Factura =
+"X"). Reemplaza la v1 (9 columnas simples). Probado con datos realistas en
+una pestaña de prueba antes de dar por buena la implementación.
 
-Efecto colateral encontrado y arreglado: al pasar la fecha a un valor de
-fecha real (para que el formato visual funcione), `list_invoices()` filtraba
-mal por mes — se corrigió leyendo el valor sin formatear y convirtiéndolo de
-vuelta a AAAA-MM-DD en Python.
+Bugs nuevos encontrados y corregidos durante la implementación de la v2:
+- **Ceros a la izquierda perdidos** en Punto de Venta y N° de Factura (ej.
+  "0014" → 14): Sheets los interpretaba como número bajo `USER_ENTERED`. Se
+  fuerzan a texto (truco del apóstrofe inicial) para `cuit`, `punto_venta` y
+  `numero`.
+- **Montos guardados como texto, no como número**: la planilla de prueba
+  tiene configuración regional en español (coma decimal); mandar "13192.36"
+  (punto decimal) bajo `USER_ENTERED` no se reconocía como número ahí, y
+  quedaba como texto (rompía el formato de moneda y las fórmulas del
+  ADR-0002). Se manda como `float` de Python en vez de string, para no
+  depender de la configuración regional de la planilla del cliente.
+- `validarCard()` en `static/js/app.js` todavía validaba la clave vieja
+  `"iva"` (ya no existe) — actualizado a la lista completa de columnas
+  monetarias de la v2.
 
-Nota pendiente (no bloqueante): `cuit` y `numero` los guarda Sheets como
-número, no como texto — comportamiento previo a hoy, sin impacto visible
-todavía, pero a tener en cuenta si más adelante se necesita el CUIT exacto
-como texto (ceros a la izquierda, etc.).
+Lo ya implementado de la v1 sigue vigente sin cambios: metodología de
+cálculo (ADR-0002), encabezado protegido y reescrito siempre con textos
+canónicos, formato visual (ADR-0004: fecha AAAA-MM-DD mostrada DD/MM/AAAA,
+moneda con formato `$`, fila congelada), Issue #001 (facturas desalineadas,
+resuelto). El ancho de columna pasó de auto-resize a **anchos fijos por
+columna** (`_COLUMN_WIDTHS` en `sheets.py`) — ajustables a mano en Sheets
+después si algo queda muy angosto/ancho.
 
 ## Next
-1. **Implementar la estructura v2** (ADR-0005 + ADR-0006, 23 columnas — IVA
-   por alícuota, percepciones, retenciones, Cód. Proveedor, Categoría
-   clasificada libremente por la IA, CUENTA en blanco, y la regla CAE
-   ausente → Tipo Factura = "X"). Sin puntos abiertos, lista para programar:
-   reescribir el prompt de Gemini, `fields.py`, `sheets.py`
-   (encabezado/formato/ancho de columna fijo por columna) y el formulario de
-   revisión del frontend.
+1. **Probar el flujo completo en producción** con una foto real: confirmar
+   que el prompt nuevo de Gemini extrae bien los ~20 campos (sobre todo el
+   IVA discriminado por alícuota y la regla de CAE → "X"), y que el
+   formulario de revisión (ahora ~20 campos por tarjeta) es usable — hoy es
+   una lista larga sin agrupar por secciones, podría valer la pena
+   repensarlo si se siente incómodo de usar en el celular.
 2. Retomar el ADR-0003 (pestañas por período) cuando se discuta: cómo se
    pasa de un período a otro, y qué pasa con el filtro por mes y las
    fórmulas de total anual (ADR-0002) si los datos quedan repartidos en
    varias pestañas.
+3. Decidir migración de planillas v1 ya conectadas por clientes reales (si
+   las hay) a la estructura v2.
