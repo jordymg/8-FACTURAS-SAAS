@@ -45,6 +45,24 @@ class SheetAccessError(Exception):
 ROW_KEYS = FIELD_KEYS + ["imagen", "cargada_el"]
 
 
+def _last_col_letter(n: int) -> str:
+    """Letra de columna A1 para la n-ésima columna (1-indexed, hasta 26)."""
+    return chr(64 + n)
+
+
+def _real_row_count(sheet: gspread.Worksheet) -> int:
+    """Cantidad de filas con contenido real.
+
+    get_all_values() en una planilla recién creada y realmente vacía devuelve
+    [[]] (una fila "vacía"), no [] — eso es truthy en Python, así que un
+    chequeo ingenuo como `if not sheet.get_all_values()` nunca detecta una
+    planilla vacía. Filtramos las filas fantasma (sin ninguna celda con
+    contenido) para contar solo las que tienen datos de verdad. Ver Issue #001
+    en docs/ISSUES.md.
+    """
+    return len([r for r in sheet.get_all_values() if any(cell.strip() for cell in r)])
+
+
 def connect_spreadsheet(text: str) -> str:
     """Valida que la SA puede abrir la planilla del usuario y le escribe el
     encabezado si está vacía. Devuelve el spreadsheet_id."""
@@ -62,9 +80,13 @@ def connect_spreadsheet(text: str) -> str:
     except Exception as e:
         raise SheetAccessError(f"No se pudo abrir la planilla: {e}") from e
 
-    if not sheet.get_all_values():
-        sheet.append_row(ROW_KEYS, value_input_option="USER_ENTERED")
-        sheet.format(f"A1:{chr(64 + len(ROW_KEYS))}1", {"textFormat": {"bold": True}})
+    if _real_row_count(sheet) == 0:
+        last_col = _last_col_letter(len(ROW_KEYS))
+        # Escribimos con un rango de celdas explícito (A1:K1), no con
+        # append_row: dejar que la API "adivine" dónde está la tabla es lo que
+        # causaba el Issue #001 (facturas desencolumnadas). Ver docs/ISSUES.md.
+        sheet.update([ROW_KEYS], range_name=f"A1:{last_col}1", value_input_option="USER_ENTERED")
+        sheet.format(f"A1:{last_col}1", {"textFormat": {"bold": True}})
 
     return spreadsheet_id
 
@@ -72,7 +94,11 @@ def connect_spreadsheet(text: str) -> str:
 def append_invoice(spreadsheet_id: str, row: dict) -> None:
     sheet = _client().open_by_key(spreadsheet_id).sheet1
     values = [row.get(key, "") for key in ROW_KEYS]
-    sheet.append_row(values, value_input_option="USER_ENTERED")
+    # Calculamos nosotros la próxima fila libre y escribimos en un rango
+    # explícito — no usamos append_row (ver Issue #001 en docs/ISSUES.md).
+    next_row = _real_row_count(sheet) + 1
+    last_col = _last_col_letter(len(ROW_KEYS))
+    sheet.update([values], range_name=f"A{next_row}:{last_col}{next_row}", value_input_option="USER_ENTERED")
 
 
 def list_invoices(spreadsheet_id: str, month: str | None = None) -> list[dict]:

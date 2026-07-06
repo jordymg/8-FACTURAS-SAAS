@@ -10,14 +10,15 @@ Goal: one user (the founder) completes foto → extracción → revisión → Sh
 - [x] POST /api/invoices: append row (Sheet vía SA)
 - [x] Probado end-to-end en local con cuenta real: login → conectar planilla → foto → extracción → guardar → aparece en el Sheet
 - [x] Decisión MVP: no persistir la imagen (ni disco, ni Drive, ni S3) — se usa solo en memoria para la extracción y se descarta. Destraba el deploy sin resolver el storage definitivo.
-- [ ] Deploy to Render (single service) — depends on: —
+- [x] Deploy to Render (single service) — `https://facturas-saas.onrender.com`
+- [x] Issue #001 (facturas desencolumnadas en Sheets) diagnosticado por debug y resuelto — ver `docs/ISSUES.md`
 
 ## Post-MVP
 - [ ] Guardar la imagen del comprobante en el Drive del cliente (`Facturas/{año}/{mes}/`,
       nombre `{fecha}_{proveedor}_{numero}.jpg`) — depende de: resultado del experimento
       aislado de OAuth con scope `drive.file` (fuera de este repo, ver STATUS.md)
 
-Exit criterion: founder saves a real invoice from his phone to his own Sheet via the public URL. ✅ probado en local, falta el deploy público.
+Exit criterion: founder saves a real invoice from su celular a su propio Sheet via la URL pública. ✅ cumplido — probado en producción real (con un bug encontrado y ya resuelto en el camino).
 
 ## Phase 2 — Beta with real users
 Goal: uncle + 1 more user run a full month unassisted.

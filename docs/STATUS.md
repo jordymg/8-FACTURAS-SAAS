@@ -1,8 +1,9 @@
 # STATUS
 
 ## Current phase
-Phase 1 — flujo completo probado en local, sin persistencia de imagen (decisión MVP).
-Falta deploy a producción.
+Phase 1 — deployado en Render (`https://facturas-saas.onrender.com`) y probado con
+un usuario real. Se encontró y arregló un bug de datos (Issue #001, ver
+`docs/ISSUES.md`) durante esa prueba.
 
 ## Done
 - Pivot de arquitectura: se integró el prototipo funcional del founder (carpeta `inbox/`,
@@ -31,16 +32,35 @@ Falta deploy a producción.
   en producción. La columna `imagen` de la planilla queda siempre vacía por ahora.
   El diseño de la carpeta/nombre para cuando se resuelva (Drive del cliente, post-MVP)
   ya está definido: `Facturas/{año}/{mes}/`, archivo `{fecha}_{proveedor}_{numero}.jpg`.
+- **Deploy a Render**: la app está publicada en `https://facturas-saas.onrender.com`.
+  Se agregaron dos fixes necesarios para que funcionara ahí (no hacían falta en local):
+  `psycopg2-binary` en `requirements.txt` (faltaba el driver de Postgres — en local
+  siempre se usó SQLite) y `ProxyFix` en `app/__init__.py` (sin esto, el login de
+  Google fallaba porque Flask veía el request como http, no https, detrás del proxy
+  de Render).
+- **Issue #001 resuelto**: al probar con un usuario nuevo real en producción, las
+  facturas 2 y 3 se guardaron desencolumnadas en el Sheet. Diagnosticado por debug
+  (no se aplicó ningún fix a ciegas) y confirmado con reproducción controlada: eran
+  dos bugs encadenados en `app/services/sheets.py` (ver detalle completo en
+  `docs/ISSUES.md` #001). Ya arreglado y verificado.
 
 ## Next
-1. **Deployar la app a Render y probar el flujo ahí, no solo en local.**
-   Qué: publicar el servicio usando el `render.yaml` que ya está en el repo, y cargar
-   en el dashboard de Render las variables de entorno reales (`GEMINI_API_KEY`,
-   `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, y la Service Account).
-   Dónde: dashboard de Render (render.com), conectando el repo de GitHub.
-   Qué se necesita: agregar la URL pública de Render como redirect URI autorizado en
-   Google Cloud Console, para el mismo client OAuth que se usa hoy. Ya no depende de
-   resolver el storage de imagen (se sacó de este alcance, ver Done).
+1. **Confirmar el fix del Issue #001 en producción.**
+   Qué: repetir la prueba real (usuario nuevo, planilla nueva, 3+ facturas seguidas)
+   contra `https://facturas-saas.onrender.com` para confirmar que ya no se
+   desencolumnan.
+   Dónde: la app pública de Render, una vez que este fix esté pusheado y Render haya
+   redeployado solo.
+   Qué se necesita: nada más que probarlo — el fix ya está commiteado.
+
+2. **Corregir las filas ya desencolumnadas en la planilla real de producción.**
+   Qué: la planilla nueva que se usó para probar el deploy tiene ahora mismo 2 filas
+   mal encolumnadas (facturas 2 y 3 de esa prueba).
+   Dónde: esa planilla de Google Sheets (no la vieja `Facturas Proveedores - bot` que
+   se usó como referencia para diagnosticar el bug).
+   Qué se necesita: que el founder pase la URL/ID de esa planilla puntual para
+   corregir las filas (a mano o por script) — no se tocó ninguna planilla de
+   producción sin permiso.
 
 ## Post-MVP (no bloquea nada de lo de arriba)
 - Guardar la imagen del comprobante en el Drive del cliente, en vez de descartarla.
@@ -71,3 +91,14 @@ Falta deploy a producción.
   (ni disco, ni Drive, ni S3), para destrabar el deploy a Render sin depender de esa
   decisión. Guardarla en el Drive del cliente queda como post-MVP.
 - 2026-07-05: el canal de WhatsApp del prototipo NO va en el MVP — queda como post-MVP.
+- 2026-07-06: deploy a Render (`facturas-saas.onrender.com`), con fixes de
+  `psycopg2-binary` y `ProxyFix` necesarios solo en producción.
+- 2026-07-06: Issue #001 diagnosticado por debug (no a ciegas) y resuelto — ver
+  `docs/ISSUES.md`. Causa: `get_all_values()` devuelve `[[]]` (truthy) en una
+  planilla vacía, lo que saltaba la escritura del encabezado; sin encabezado, la
+  API de Sheets adivinaba mal dónde escribir la fila siguiente. Se dejó de usar
+  `append_row` (que le pide a Sheets adivinar) por escritura a rango explícito.
+- 2026-07-06: nueva convención en `docs/areas/{nombre}/` para unidades de I+D por
+  producto (README + PRODUCTO.md + STATUS.md + decisions/), y `docs/ISSUES.md` como
+  log de problemas que tocaron datos reales o sorprendieron (criterio documentado
+  ahí). Primera área: planillas.
