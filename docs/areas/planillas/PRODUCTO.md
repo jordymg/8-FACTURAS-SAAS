@@ -11,10 +11,10 @@ de mes. Ver [`docs/PRD.md`](../../PRD.md).
 
 ## 2. Estructura
 > **Esto describe la v1, la que está hoy en código.** Ya se decidió pasar a
-> una v2 de 22 columnas — ver
-> [`decisions/0005-estructura-v2.md`](decisions/0005-estructura-v2.md).
-> Implementación pendiente (falta cerrar cómo se completan Categoría y
-> CUENTA antes de programarlo).
+> una v2 de 23 columnas — ver
+> [`decisions/0005-estructura-v2.md`](decisions/0005-estructura-v2.md) +
+> [`decisions/0006-categoria-cuenta-cod-proveedor.md`](decisions/0006-categoria-cuenta-cod-proveedor.md).
+> Sin puntos abiertos — lista para implementar.
 
 1 pestaña (`sheet1`, la primera hoja de la planilla), 9 columnas de datos +
 2 columnas de metadata que escribe la app:
@@ -104,12 +104,13 @@ Resumen:
 La estructura en código hoy es **v1** (9 columnas + imagen + cargada_el,
 definida 2026-07-04 al integrar el prototipo del founder — ver
 [ADR-0004 del repo general](../../decisions/0004-service-account-sheets.md),
-no confundir con el ADR-0004 de esta área). **v2** (22 columnas, alineada a
+no confundir con el ADR-0004 de esta área). **v2** (23 columnas, alineada a
 categorías impositivas reales — IVA por alícuota, percepciones, retenciones)
-ya está decidida en
-[`decisions/0005-estructura-v2.md`](decisions/0005-estructura-v2.md), pendiente
-de implementar. Todo cambio de estructura (agregar/sacar/renombrar columnas,
-nueva plantilla) se decide en esta área, con un ADR en `decisions/`.
+ya está decidida, sin puntos abiertos, en
+[`decisions/0005-estructura-v2.md`](decisions/0005-estructura-v2.md) +
+[`decisions/0006-categoria-cuenta-cod-proveedor.md`](decisions/0006-categoria-cuenta-cod-proveedor.md),
+pendiente de implementar. Todo cambio de estructura (agregar/sacar/renombrar
+columnas, nueva plantilla) se decide en esta área, con un ADR en `decisions/`.
 
 ## 8. Backlog de ideas
 - Totales mensuales (fila o pestaña de resumen).
