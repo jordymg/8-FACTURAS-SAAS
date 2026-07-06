@@ -65,10 +65,20 @@ Resumen:
    Sheets, función nativa de Google). Decisión del founder: no vale la pena
    construir un export propio cuando Sheets ya lo resuelve gratis.
 
-## 5. Reglas de integridad — ABIERTO
-Encabezados protegidos (¿con protección de rango de Sheets, o confiamos en que
-nadie los toca?), qué pasa si el usuario edita o borra filas a mano, qué pasa
-si borra o renombra la pestaña. A decidir con el founder.
+## 5. Reglas de integridad — PARCIALMENTE DECIDIDA
+- **Encabezado (fila 1):** protegido con protección de rango de Google
+  Sheets — nadie debería poder editarlo/borrarlo sin permiso explícito.
+  Implementación pendiente en `connect_spreadsheet()`.
+- **Edición manual de filas de datos:** permitida libremente. El usuario es
+  dueño de su planilla; no se bloquea ni se valida. Nota: si edita un campo
+  a mano de forma que quede en un formato raro (ej. CUIT sin dígitos), la
+  detección de duplicados por cuit+numero (ADR-0002) podría no funcionar
+  bien para esa fila puntual — comportamiento aceptado, no se resuelve.
+- **Pestaña borrada/renombrada:** ABIERTO — el founder propuso pasar a un
+  esquema de una pestaña por período (ej. `JUL-26`) en vez de una sola tabla
+  en `sheet1`, lo que cambia la pregunta de fondo. Ver
+  [`decisions/0003-pestanas-por-periodo.md`](decisions/0003-pestanas-por-periodo.md)
+  (en discusión, no implementar todavía).
 
 ## 6. Formato visual — ABIERTO
 Formato de moneda, de fechas, ancho de columnas, legibilidad para el
