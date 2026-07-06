@@ -80,15 +80,27 @@ Resumen:
   [`decisions/0003-pestanas-por-periodo.md`](decisions/0003-pestanas-por-periodo.md)
   (en discusión, no implementar todavía).
 
-## 6. Formato visual — ABIERTO
-Formato de moneda, de fechas, ancho de columnas, legibilidad para el
-contador (que no usa la app, solo recibe el Sheet). A decidir con el founder.
+## 6. Formato visual — ADOPTADA (ver ADR-0004 de esta área)
+Detalle completo en
+[`decisions/0004-formato-visual.md`](decisions/0004-formato-visual.md).
+
+Resumen:
+- **Fecha:** se guarda como `AAAA-MM-DD` (valor real, sin cambios), pero se
+  formatea la celda para mostrarse `DD/MM/AAAA` — aclara/corrige la mención
+  a "dd/mm/aaaa" del ADR-0002.
+- **Moneda:** valor numérico real (`13192.36`), con formato de celda de
+  moneda para mostrarse `$13.192,36`.
+- **Legibilidad:** fila de encabezado congelada ✅, ancho de columna
+  ajustado al contenido ✅, colores alternados por fila ❌ (descartado).
+- Implementación pendiente en `connect_spreadsheet()`.
 
 ## 7. Versionado
 La estructura actual es **v1** (9 columnas + imagen + cargada_el, definida
-2026-07-04 al integrar el prototipo del founder — ver ADR-0004 del repo
-general). Todo cambio de estructura (agregar/sacar/renombrar columnas, nueva
-plantilla) se decide en esta área, con un ADR en `decisions/`.
+2026-07-04 al integrar el prototipo del founder — ver
+[ADR-0004 del repo general](../../decisions/0004-service-account-sheets.md),
+no confundir con el ADR-0004 de esta área). Todo cambio de estructura
+(agregar/sacar/renombrar columnas, nueva plantilla) se decide en esta área,
+con un ADR en `decisions/`.
 
 ## 8. Backlog de ideas
 - Totales mensuales (fila o pestaña de resumen).

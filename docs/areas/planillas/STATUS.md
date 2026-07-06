@@ -4,20 +4,18 @@
 Planilla v1 en producción (Render), creada manualmente por cada usuario y
 conectada vía Service Account. Probada end-to-end con datos reales. Issue #001
 (facturas desalineadas de columna) diagnosticado y resuelto — ver
-`docs/ISSUES.md`. Metodología de cálculo decidida (ADR-0002). Reglas de
-integridad parcialmente decididas (punto 5 de PRODUCTO.md): encabezado
-protegido y edición manual libre ya confirmados; qué pasa si se borra/renombra
-la pestaña quedó abierto como ADR-0003 (en discusión — posible esquema de una
-pestaña por período).
+`docs/ISSUES.md`. Los 3 puntos ABIERTOS de `PRODUCTO.md` ya tienen decisión:
+metodología de cálculo (ADR-0002), integridad (parcial, ver abajo) y formato
+visual (ADR-0004). Falta implementar en código lo ya decidido.
 
 ## Next
-1. Implementar la protección de rango del encabezado en
-   `connect_spreadsheet()` (ya decidido, falta el código).
-2. Entrevistar al founder sobre el punto 6 de `PRODUCTO.md` (formato visual):
-   formato de fecha (guardar AAAA-MM-DD y mostrar dd/mm/aaaa, o convertir de
-   verdad), formato de moneda, y qué tan prolija debe quedar la planilla para
-   el contador (fila congelada, ancho de columnas, colores alternados). Se
-   preguntó pero no hubo respuesta todavía.
-3. Discutir el ADR-0003 (pestañas por período) cuando se retome: cómo se pasa
-   de un período a otro, y qué pasa con el filtro por mes y las fórmulas de
-   total anual (ADR-0002) si los datos quedan repartidos en varias pestañas.
+1. Implementar en `connect_spreadsheet()` (`app/services/sheets.py`) todo lo
+   ya decidido y sin código todavía:
+   - Protección de rango del encabezado (punto 5).
+   - Formato de celda de fecha (columna A) y de moneda (columnas F/G/H).
+   - Fila 1 congelada.
+   - Ancho de columna ajustado al contenido.
+2. Retomar el ADR-0003 (pestañas por período) cuando se discuta: cómo se
+   pasa de un período a otro, y qué pasa con el filtro por mes y las
+   fórmulas de total anual (ADR-0002) si los datos quedan repartidos en
+   varias pestañas.
