@@ -131,6 +131,7 @@ decidido. Las reglas:
 | [`docs/ISSUES.md`](docs/ISSUES.md) | Log de problemas que tocaron datos reales o sorprendieron |
 | [`docs/decisions/`](docs/decisions/) | ADRs generales (stack, storage, pricing, Service Account) |
 | [`docs/areas/`](docs/areas/) | Unidades de I+D por producto (ej. la planilla) |
+| [`docs/ORGANIGRAMA.md`](docs/ORGANIGRAMA.md) | Roles y quién dirige cada área |
 | [`VALIDATION.md`](VALIDATION.md) | Gate 4/4 y evidencia |
 
 ## 🚀 Correr local

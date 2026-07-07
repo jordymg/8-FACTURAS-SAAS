@@ -1,28 +1,44 @@
 # Área: App (diseño/UX)
 
-I+D del **diseño y la experiencia de uso de la app** — la PWA que el cliente
-usa para sacar la foto, revisar los datos y conectar su planilla. Acá se
-discute y decide todo lo relativo a pantallas, flujos de uso, y estados de
-la interfaz (no la planilla en sí — eso vive en
-[`docs/areas/planillas/`](../planillas/)).
+## Qué es
+I+D de lo que el cliente **ve y toca** — la PWA que usa para sacar la foto,
+revisar los datos y conectar su planilla. Es la contracara del área
+[`planillas`](../planillas/): Planillas diseña el **entregable** (lo que
+recibe el contador), App diseña el **medio** por el que el cliente carga los
+datos. El README general lo resume como "la app es el medio; la planilla es
+el entregable real".
 
-Analogía: si `planillas` es el diseño del **producto entregable** (lo que
-recibe el contador), esta área es el diseño del **canal** por el que el
-cliente carga los datos — el README general lo resume como "la app es el
-medio; la planilla es el entregable real".
+Esta área **no está atada al hosting actual** (Render) — sobrevive a
+cualquier migración de infraestructura futura, porque es sobre diseño y
+experiencia de uso, no sobre dónde corre el servicio.
+
+## Encargado
+**CPO** — ver [`docs/ORGANIGRAMA.md`](../../ORGANIGRAMA.md).
 
 ## Alcance
-- Diseño de pantallas (landing, configuración, captura, revisión, últimas
-  facturas).
-- Flujo de uso de punta a punta (onboarding, carga diaria, estados de
-  error).
-- Formulario de revisión: layout, agrupación de campos, estados visuales
-  (vacío, inválido, en duda/baja certeza — ver
+- Identidad visual: colores, tipografía, logo.
+- Pantallas y navegación (landing, configuración, captura, revisión,
+  últimas facturas).
+- Flujo de uso de punta a punta: foto → revisión → guardado.
+- Formulario de revisión: layout con ~20 campos, pensado para mobile —
+  estados visuales (vacío, inválido, en duda/baja certeza — ver
   [`decisions/0008` del área planillas](../planillas/decisions/0008-manejo-de-duda-no-bloqueante.md)
   para el mecanismo de duda que esta área debe reflejar visualmente).
 - Pantalla de espera / cold start (ver
   [`docs/decisions/0005-pantalla-espera-cold-start.md`](../../decisions/0005-pantalla-espera-cold-start.md)
   del repo general).
+- Onboarding: cómo se explica y se hace la conexión de la planilla la
+  primera vez.
+- Mensajes de error y estados vacíos.
+
+## Qué NO es
+- La estructura de la planilla (columnas, fórmulas, formato de Sheets) —
+  eso es del área [`planillas`](../planillas/).
+- La lógica de backend/extracción (prompt de Gemini, Service Account,
+  validaciones en Python) — eso vive en el repo general
+  (`app/services/`, `docs/decisions/`).
+- Pricing o modelo de negocio — eso son ADRs generales
+  (`docs/decisions/0003-pricing.md`).
 
 ## Contenido de esta área
 | Archivo | Qué contiene |
@@ -34,4 +50,4 @@ medio; la planilla es el entregable real".
 ## Regla
 Todo cambio de flujo o pantalla significativo se decide acá, con un ADR en
 `decisions/`, antes de tocar `templates/`, `static/js/app.js` o
-`static/css/app.css`.
+`static/css/app.css` — mismo principio que el área Planillas.

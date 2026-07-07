@@ -72,6 +72,13 @@ extracción con una foto real usando el prompt nuevo.
     Editor a las planillas — reflejarlo en los términos de uso antes de
     lanzar, Fase 3), con la idea de una vista de solo-lectura como
     alternativa post-MVP anotada en el icebox.
+- **Organigrama de la empresa** (`docs/ORGANIGRAMA.md`, ADR-0006 repo
+  general): roles se crean con cada área nueva, no todos de entrada. CEO
+  (Jordi) dirige sin ejecutar. CPO (Claude) es el encargado de las áreas App
+  y Planillas — mismo producto visto de dos lados (medio y entregable).
+  `docs/areas/app/README.md` completado con la definición del área (qué es,
+  encargado, alcance, qué NO es). `docs/areas/planillas/README.md` también
+  actualizado con su encargado, por consistencia con el ADR nuevo.
 
 ## Next
 1. **Probar la extracción v2 con una foto real en producción.**
@@ -150,3 +157,7 @@ extracción con una foto real usando el prompt nuevo.
   en negro casi nunca tienen CUIT visible) — corregida el mismo día. Aviso
   no bloqueante en la tarjeta de revisión, también contra duplicados dentro
   de la misma tanda. Confirmado funcionando en producción.
+- 2026-07-07: ADR-0006 (repo general) — modelo de organización por roles.
+  Organigrama vivo en `docs/ORGANIGRAMA.md`, roles se crean con cada área
+  nueva. CEO (Jordi) dirige sin ejecutar; CPO (Claude) encargado de las
+  áreas App y Planillas.

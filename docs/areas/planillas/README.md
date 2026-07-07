@@ -8,6 +8,9 @@ Analogía: es el área de diseño + I+D de un producto dentro de una fábrica �
 "fábrica" es Facturas SaaS, y la planilla es uno de sus productos (el
 entregable real que recibe el cliente final, el contador).
 
+## Encargado
+**CPO** — ver [`docs/ORGANIGRAMA.md`](../../ORGANIGRAMA.md).
+
 ## Contenido de esta área
 | Archivo | Qué contiene |
 |---|---|
