@@ -34,12 +34,13 @@ extracción con una foto real usando el prompt nuevo.
   válido (autorizado por controlador fiscal, sin CAE) se guardó como "Tipo
   Factura" = "X" (comprobante en negro) — falso positivo. Corregido por
   ADR-0007 (área Planillas): "X" solo si no se detecta NINGUNA de las 4 vías
-  de autorización (CAE, CAEA, CAI, controlador fiscal), y se agrega un
-  **principio de duda general**: si la IA no está segura de un campo, lo
-  deja vacío en vez de arriesgar un valor, y el formulario lo resalta en
-  rojo hasta que el usuario lo complete (nueva clase `campo-en-duda`).
-  Probado con una imagen ambigua antes de dar por bueno. Ver
-  `docs/ISSUES.md` #002.
+  de autorización (CAE, CAEA, CAI, controlador fiscal). Ver `docs/ISSUES.md` #002.
+- **Mecanismo de duda ajustado (ADR-0008, corrige ADR-0007)**: en vez de
+  dejar el campo vacío y bloquear el guardado, la IA completa el campo con
+  su mejor valor y lo marca "baja certeza" — el formulario lo resalta en
+  rojo (clase `campo-en-duda`) pero **no bloquea el guardado**; avanzar se
+  toma como confirmación implícita. Se revisó el mismo día, antes de que el
+  mecanismo anterior llegara a un usuario real.
 - Reconectar una planilla ya creada (vía `/app/config`, pegando la misma
   URL/ID de nuevo) reescribe el encabezado a la estructura vigente — sirve
   para llevar una planilla vieja (v1) a la v2 sin tocar código. Las filas de
@@ -54,13 +55,13 @@ extracción con una foto real usando el prompt nuevo.
 1. **Probar la extracción v2 con una foto real en producción.**
    Qué: subir una factura real (con al menos un impuesto discriminado —
    IVA, percepción o retención) y confirmar que el prompt nuevo de Gemini la
-   lee bien, incluida la regla corregida de CAE/duda (ADR-0007): "X" solo
-   sin ninguna de las 4 vías de autorización, y campo vacío + rojo cuando
-   la IA no está segura.
+   lee bien, incluida la regla de CAE/duda (ADR-0007 + ADR-0008): "X" solo
+   sin ninguna de las 4 vías de autorización, y campo con mejor valor + rojo
+   (sin bloquear guardado) cuando la IA no está segura.
    Dónde: `https://facturas-saas.onrender.com`.
    Qué se necesita: nada más que probarlo — el código ya está pusheado.
 
-2. **Armar el set de casos de prueba del prompt** que pide el ADR-0007
+2. **Armar el set de casos de prueba del prompt** que piden el ADR-0007/0008
    (factura electrónica A/B/C, ticket consumidor final, tique-factura A,
    comprobante con CAI, presupuesto sin autorización).
    Qué: fotos o imágenes de referencia de cada caso, para validar la regla
@@ -106,5 +107,9 @@ extracción con una foto real usando el prompt nuevo.
 - 2026-07-06: ADR-0007 (área Planillas) — corrige la regla de CAE del
   ADR-0005 tras el Issue #002 (falso positivo real en producción). "X" solo
   sin ninguna de las 4 vías de autorización (CAE, CAEA, CAI, controlador
-  fiscal); nuevo principio de duda general para todo el formulario de
-  revisión.
+  fiscal).
+- 2026-07-06: ADR-0008 (área Planillas) — corrige el mecanismo de duda del
+  ADR-0007: en vez de campo vacío + guardado bloqueado, la IA completa el
+  campo con su mejor valor + lo marca "baja certeza" (rojo, sin bloqueo);
+  avanzar/guardar es la confirmación implícita. Regla general para todo el
+  formulario de revisión.

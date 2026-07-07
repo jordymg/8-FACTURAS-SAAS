@@ -152,10 +152,10 @@
           else if (campo.required) ctrl.classList.add("campo-vacio");
         });
       }
-      // La IA no pudo determinar este campo con certeza (ADR-0007): queda
-      // vacío y resaltado en rojo hasta que el usuario lo revise/complete.
-      if (enDuda && !val) ctrl.classList.add("campo-en-duda");
-      ctrl.dataset.dudoso = enDuda ? "true" : "false";
+      // La IA completó este campo con baja certeza (ADR-0008): se resalta en
+      // rojo para que el usuario lo corrobore, pero NO bloquea el guardado
+      // — avanzar/guardar se toma como confirmación implícita.
+      if (enDuda) ctrl.classList.add("campo-en-duda");
       ctrl.className = (ctrl.className ? ctrl.className + " " : "") + "campo-ctrl";
       ctrl.dataset.clave = campo.key;
       if (campo.required) ctrl.dataset.requerido = "true";
@@ -232,11 +232,8 @@
       if (!ctl || ctl.readOnly) return;
       const valor = ctl.value.trim();
       if (campo.required && !valor) { ctl.classList.add("campo-vacio"); valido = false; }
-      if (ctl.dataset.dudoso === "true" && !valor) {
-        ctl.classList.add("campo-en-duda");
-        problemas.push(`${campo.label}: la IA no está segura, revisar y completar`);
-        valido = false;
-      }
+      // Nota (ADR-0008): "campo-en-duda" (baja certeza) es solo un aviso
+      // visual — no bloquea el guardado, guardar es la confirmación.
       if (campo.key === "fecha" && valor && !/^\d{4}-\d{2}-\d{2}$/.test(valor)) {
         ctl.classList.remove("campo-vacio");
         ctl.classList.add("campo-invalido");

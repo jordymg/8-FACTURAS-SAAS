@@ -3,6 +3,13 @@
 **Date:** 2026-07-06
 **Status:** ADOPTADA — corrige la regla de CAE del ADR-0005
 
+> ⚠️ **Corregido por [ADR-0008](0008-manejo-de-duda-no-bloqueante.md):** la
+> regla de las 4 vías de autorización (CAE/CAEA/CAI/controlador fiscal) para
+> Tipo Factura = "X" sigue vigente sin cambios. Lo que cambia es el mecanismo
+> de duda: en vez de dejar el campo vacío y bloquear el guardado, la IA
+> completa el campo con su mejor valor y lo marca "baja certeza" (rojo, sin
+> bloqueo) — ver ese ADR para el detalle completo.
+
 ## Contexto
 La regla del ADR-0005 ("si la IA no detecta CAE → Tipo Factura = X") produjo
 un falso positivo en producción: un Ticket A perfectamente válido fue

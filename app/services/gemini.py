@@ -25,12 +25,12 @@ _PROMPT = (
     "campo (ej. Impuestos Internos NO es IVA, una Percepción de IIBB NO es una Retención de "
     "Ganancias). Si un monto no corresponde claramente a ninguno de los campos definidos, "
     "dejalo afuera — no lo fuerces en el campo que más se parezca.\n\n"
-    "Regla de duda (importante, ver ADR-0007 del área de Planillas): si no podés determinar "
+    "Regla de duda (importante, ver ADR-0008 del área de Planillas): si no podés determinar "
     "con certeza el valor de un campo — por ejemplo, si no ves ninguna evidencia clara de que "
     "el comprobante esté autorizado (CAE, CAEA, CAI, o marcas de un controlador fiscal "
-    "homologado) para decidir el campo 'tipo' — NO inventes ni elijas el valor que te parezca "
-    "más probable: dejá ese campo como string vacío y agregá su clave a 'campos_inciertos'. Es "
-    "mejor marcar duda (para que una persona lo revise) que arriesgar un valor incorrecto."
+    "homologado) para decidir el campo 'tipo' — completá igual el campo con el valor que te "
+    "parezca más probable (NUNCA lo dejes vacío por duda) y agregá su clave a "
+    "'campos_inciertos', para que una persona lo revise antes de guardar."
 )
 
 
@@ -55,10 +55,10 @@ def extract_invoice(image_bytes: bytes, mime_type: str = "image/jpeg") -> Option
                         "type": "array",
                         "items": {"type": "string"},
                         "description": (
-                            "Claves (de los campos de arriba) donde NO estás seguro del valor "
-                            "extraído. En esos casos el campo correspondiente debe quedar vacío "
-                            '("") y su clave va acá, para que una persona lo revise a mano antes '
-                            "de guardar. Lista vacía si no hay ninguna duda."
+                            "Claves (de los campos de arriba) donde completaste un valor pero "
+                            "con baja certeza — el campo SIEMPRE debe tener tu mejor estimación "
+                            "(nunca vacío por duda), esto solo marca cuáles conviene que una "
+                            "persona revise antes de guardar. Lista vacía si no hay ninguna duda."
                         ),
                     },
                 },

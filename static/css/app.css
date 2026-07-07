@@ -294,7 +294,7 @@ body {
 .campo-ctrl:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px #eef4ff; }
 .campo-ctrl.campo-vacio { border-color: #e67e22; background: #fffbf5; }
 .campo-ctrl.campo-invalido { border-color: var(--red); background: #fdf0ee; }
-/* La IA no pudo determinar este campo con certeza (ADR-0007) — revisar y completar antes de guardar */
+/* Campo completado con baja certeza por la IA (ADR-0008) — aviso visual, no bloquea guardar */
 .campo-ctrl.campo-en-duda { border-color: var(--red); background: #fdf0ee; }
 
 .msg-validacion { font-size: .82rem; color: #e67e22; margin-bottom: .45rem; display: none; }

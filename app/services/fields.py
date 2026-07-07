@@ -32,8 +32,8 @@ FIELDS = [
          "código de equipo — común en tickets y tique-facturas que no tienen CAE). Si NO ves "
          "NINGUNA de estas evidencias, devolvé 'X' en vez de la letra impresa — indica un "
          "comprobante no autorizado (en negro). Si no podés determinar con certeza si está "
-         "autorizado (ej. foto cortada, marca ilegible), NO elijas ningún valor: dejá este "
-         "campo vacío y agregá 'tipo' a campos_inciertos — ver regla de duda general."
+         "autorizado (ej. foto cortada, marca ilegible), completá igual con tu mejor estimación "
+         "(nunca lo dejes vacío) y agregá 'tipo' a campos_inciertos — ver regla de duda general."
      )},
     {"key": "punto_venta", "label": "Punto de Venta", "required": False,
      "description": "Punto de venta del comprobante (ej. 0001), sin el número de factura"},
