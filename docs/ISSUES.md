@@ -94,3 +94,37 @@ probado. Prevención pendiente (ver ADR-0007): armar un set de casos de
 prueba del prompt (factura A/B/C electrónica, ticket consumidor final,
 tique-factura A, comprobante con CAI, presupuesto sin autorización) para
 validar la regla en cada cambio futuro.
+
+---
+
+## #003 — Duplicados no detectados: CUIT ausente y formato con guiones
+**Área:** [planillas](areas/planillas/)
+**Fecha:** 2026-07-07
+**Síntoma:** probando la detección de duplicados (ADR-0009) recién
+implementada, dos casos reales no se detectaron:
+1. Una factura ya cargada previamente no se reconoció como duplicada al
+   volver a subirla.
+2. Una **factura en negro** (sin CUIT visible, común en tickets informales)
+   subida dos veces no disparó ningún aviso — justo el tipo de comprobante
+   que más necesita este aviso.
+
+**Causa raíz:** dos bugs encadenados, ambos encontrados por el uso real (no
+por revisión de código):
+1. El criterio de match normalizaba ceros a la izquierda pero no separadores
+   — un CUIT extraído con guiones (`"30-62926009-5"`) no matcheaba contra el
+   mismo CUIT guardado sin guiones (`"30629260095"`).
+2. `find_duplicate()` requería CUIT no vacío para siquiera buscar — como las
+   facturas en negro casi nunca tienen CUIT impreso, la búsqueda ni se
+   ejecutaba para ese caso.
+
+**Fix:** en `app/services/sheets.py`:
+- `norm_id()` ahora saca cualquier carácter no numérico (no solo ceros a la
+  izquierda), así guiones/espacios no rompen el match.
+- El criterio de match se cambió de `cuit`+`numero`+`fecha` a
+  **`proveedor`+`numero`+`fecha`** (ADR-0009 actualizado) — `proveedor` casi
+  siempre está presente, incluso en comprobantes informales.
+- De paso se agregó chequeo contra otras fotos de la **misma tanda** (antes
+  solo comparaba contra lo ya guardado en el Sheet).
+
+**Estado:** ✅ resuelto y probado (match con CUIT/guiones, factura sin CUIT
+repetida, y duplicado dentro de la misma tanda).

@@ -237,25 +237,34 @@ def _serial_to_iso_date(value) -> str:
     return str(value)
 
 
-def _norm_id(value) -> str:
-    """Normaliza un identificador (cuit/numero) para comparar sin que importen
-    ceros a la izquierda (ej. "0017367" y "17367" deben matchear) — ver ADR-0009."""
-    value = str(value or "").strip().lstrip("0")
-    return value or "0"
+def norm_id(value) -> str:
+    """Normaliza un identificador numérico (numero de factura) para comparar
+    sin que importen ceros a la izquierda ni separadores (ej. "0017367" y
+    "17367" deben matchear) — ver ADR-0009."""
+    digits = re.sub(r"\D", "", str(value or ""))
+    return digits.lstrip("0") or "0"
 
 
-def find_duplicate(invoices: list[dict], cuit: str, numero: str, fecha: str) -> str | None:
-    """Busca, entre las facturas ya cargadas, una con el mismo cuit+numero+fecha
-    (ADR-0009). Devuelve el `cargada_el` de la fila existente, o None si no hay
-    coincidencia. `invoices` viene de list_invoices() — se pasa ya leído para no
-    releer la planilla entera por cada archivo de un lote."""
-    if not (cuit and numero and fecha):
+def norm_text(value) -> str:
+    """Normaliza texto (proveedor) para comparar sin que importen mayúsculas
+    ni espacios de más — ver ADR-0009."""
+    return re.sub(r"\s+", " ", str(value or "").strip()).lower()
+
+
+def find_duplicate(invoices: list[dict], proveedor: str, numero: str, fecha: str) -> str | None:
+    """Busca, entre las facturas ya cargadas, una con el mismo
+    proveedor+numero+fecha (ADR-0009 — no usa CUIT porque las facturas en
+    negro suelen no tenerlo, y son justo las que más necesitan este aviso).
+    Devuelve el `cargada_el` de la fila existente, o None si no hay
+    coincidencia. `invoices` viene de list_invoices() — se pasa ya leído para
+    no releer la planilla entera por cada archivo de un lote."""
+    if not (proveedor and numero and fecha):
         return None
-    cuit_n, numero_n, fecha_n = _norm_id(cuit), _norm_id(numero), str(fecha).strip()
+    prov_n, numero_n, fecha_n = norm_text(proveedor), norm_id(numero), str(fecha).strip()
     for inv in invoices:
         if (
-            _norm_id(inv.get("cuit", "")) == cuit_n
-            and _norm_id(inv.get("numero", "")) == numero_n
+            norm_text(inv.get("proveedor", "")) == prov_n
+            and norm_id(inv.get("numero", "")) == numero_n
             and str(inv.get("fecha", "")).strip() == fecha_n
         ):
             # cargada_el también se guarda como fecha/hora real de Sheets (ver

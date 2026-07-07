@@ -51,6 +51,10 @@ def extract():
     # duplicados (ADR-0009) — evita releer todo el Sheet varias veces si se
     # suben varias fotos juntas.
     invoices_existentes = sheets.list_invoices(user.spreadsheet_id) if user.spreadsheet_id else []
+    # Además del Sheet, dos fotos de la MISMA tanda pueden ser la misma
+    # factura (ninguna está guardada todavía, así que find_duplicate contra
+    # el Sheet no las vería entre sí).
+    vistos_en_lote = set()
 
     resultados = []
     for file in files:
@@ -73,8 +77,17 @@ def extract():
         # esos campos en rojo en vez de tratarlos como un valor más.
         inciertos = fields.pop("campos_inciertos", [])
         duplicado = sheets.find_duplicate(
-            invoices_existentes, fields.get("cuit"), fields.get("numero"), fields.get("fecha")
+            invoices_existentes, fields.get("proveedor"), fields.get("numero"), fields.get("fecha")
         )
+        if not duplicado and fields.get("proveedor") and fields.get("numero") and fields.get("fecha"):
+            clave = (
+                sheets.norm_text(fields["proveedor"]),
+                sheets.norm_id(fields["numero"]),
+                str(fields["fecha"]).strip(),
+            )
+            if clave in vistos_en_lote:
+                duplicado = "__MISMA_TANDA__"  # ver static/js/app.js: mensaje distinto al de un duplicado en el Sheet
+            vistos_en_lote.add(clave)
         resultados.append({
             "nombre": file.filename, "ok": True, "fields": fields,
             "inciertos": inciertos, "duplicado": duplicado,

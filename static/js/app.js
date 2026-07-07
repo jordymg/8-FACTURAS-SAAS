@@ -125,7 +125,9 @@
     if (r.duplicado) {
       const avisoDup = document.createElement("div");
       avisoDup.className = "aviso-duplicado";
-      avisoDup.textContent = `Esta factura ya la subiste el ${r.duplicado} a tu planilla.`;
+      avisoDup.textContent = r.duplicado === "__MISMA_TANDA__"
+        ? "Parece ser la misma factura que otra foto que subiste ahora."
+        : `Esta factura ya la subiste el ${r.duplicado} a tu planilla.`;
       card.appendChild(avisoDup);
     }
 

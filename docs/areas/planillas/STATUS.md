@@ -41,16 +41,17 @@ resuelto). El ancho de columna pasó de auto-resize a **anchos fijos por
 columna** (`_COLUMN_WIDTHS` en `sheets.py`) — ajustables a mano en Sheets
 después si algo queda muy angosto/ancho.
 
-**UX de duplicados implementada (ADR-0009)**: criterio de match ajustado a
-3 campos (`cuit`+`numero`+`fecha`, no solo 2 como decía el ADR-0002
-originalmente), normalizado para que ceros a la izquierda no rompan el
-match (ej. "0017367" y "17367" se tratan igual). `sheets.find_duplicate()`
-recibe las facturas ya leídas (una sola lectura del Sheet por lote, no por
-archivo) y devuelve la fecha de carga de la coincidencia. `/api/extract` la
-manda al frontend, que muestra un aviso amarillo ("Esta factura ya la
-subiste el...") arriba de la tarjeta — no bloquea el guardado. Probado con
-match exacto, match con cero a la izquierda distinto, y no-match por fecha
-distinta.
+**UX de duplicados implementada (ADR-0009), criterio final `proveedor` +
+`numero` + `fecha`**: probando la primera versión (`cuit`+`numero`+`fecha`)
+aparecieron dos casos reales que no se detectaban — Issue #003. `cuit` se
+reemplazó por `proveedor` (las facturas en negro casi nunca tienen CUIT
+visible, y son justo las que más necesitan este aviso), y `norm_id()` ahora
+saca cualquier carácter no numérico (no solo ceros a la izquierda), así un
+CUIT o número con guiones matchea igual. `proveedor` se compara sin
+importar mayúsculas/espacios extra. También se agregó chequeo contra otras
+fotos de la **misma tanda** (antes solo comparaba contra lo ya guardado en
+el Sheet). `/api/extract` manda el resultado al frontend, que muestra un
+aviso amarillo no bloqueante arriba de la tarjeta.
 
 ## Next
 1. **Probar el flujo completo en producción** con una foto real: confirmar
