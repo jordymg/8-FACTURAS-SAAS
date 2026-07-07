@@ -54,19 +54,22 @@ el Sheet). `/api/extract` manda el resultado al frontend, que muestra un
 aviso amarillo no bloqueante arriba de la tarjeta.
 
 ## Next
-1. **Probar el flujo completo en producción** con una foto real: confirmar
-   que el prompt nuevo de Gemini extrae bien los ~20 campos (sobre todo el
-   IVA discriminado por alícuota y la regla de duda de Tipo Factura), y que
-   el formulario de revisión (ahora ~20 campos por tarjeta) es usable — hoy
-   es una lista larga sin agrupar por secciones, podría valer la pena
-   repensarlo si se siente incómodo de usar en el celular.
+1. **Confirmar en producción con una foto real que tenga impuestos
+   discriminados** (IVA a alguna alícuota, percepción o retención) — CAE,
+   duda y duplicados ya se probaron en producción (Issues #002 y #003),
+   falta específicamente ese caso. El formulario de revisión ya tiene
+   rediseño decidido (ver `docs/areas/app/decisions/0001-*.md`), sin
+   implementar todavía.
 2. **Armar el set de casos de prueba del prompt** que piden el ADR-0007/0008
    (factura electrónica A/B/C, ticket consumidor final, tique-factura A,
    comprobante con CAI, presupuesto sin autorización) para validar la regla
    de CAE/duda en cada cambio futuro del prompt — todavía no existe.
-3. Retomar el ADR-0003 (pestañas por período) cuando se discuta: cómo se
-   pasa de un período a otro, y qué pasa con el filtro por mes y las
-   fórmulas de total anual (ADR-0002) si los datos quedan repartidos en
-   varias pestañas.
-4. Decidir migración de planillas v1 ya conectadas por clientes reales (si
-   las hay) a la estructura v2.
+3. Retomar el ADR-0003 (pestañas por período) cuando se discuta: ya tiene
+   registrada la idea del founder de creación automática de pestaña por
+   período, pero siguen sin resolver el filtro por mes y las fórmulas de
+   total anual (ADR-0002) si los datos quedan repartidos en varias
+   pestañas.
+4. **ADR-0010 (pregunta abierta, no decidir todavía)**: qué hacer cuando un
+   cliente pida una columna extra propia que no forma parte de la
+   estructura estándar — se registra la pregunta, se retoma cuando aparezca
+   el primer pedido real.

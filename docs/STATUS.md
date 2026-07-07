@@ -1,10 +1,12 @@
 # STATUS
 
 ## Current phase
-Phase 1 — en producción (`https://facturas-saas.onrender.com`). La planilla
-pasó de v1 (9 columnas) a **v2 (23 columnas)**, alineada a categorías
-impositivas reales de un libro de compras argentino. Falta confirmar la
-extracción con una foto real usando el prompt nuevo.
+Phase 1 en producción (`https://facturas-saas.onrender.com`), planilla v2
+(23 columnas) confirmada con datos reales. **Re-priorizado el camino a
+vender** (ADR-0007 repo general): el MVP sale a la calle sin cobro online,
+sin landing y sin dominio propio — venta persona a persona a conocidos, demo
+presencial, cobro manual. Checklist real de "antes de vender" en
+`docs/ROADMAP.md`.
 
 ## Done
 - Pivot de arquitectura: Sheets se escriben con una Service Account en vez de
@@ -79,36 +81,86 @@ extracción con una foto real usando el prompt nuevo.
   `docs/areas/app/README.md` completado con la definición del área (qué es,
   encargado, alcance, qué NO es). `docs/areas/planillas/README.md` también
   actualizado con su encargado, por consistencia con el ADR nuevo.
+- **Re-priorización general del camino a vender (ADR-0007 repo general)**:
+  el MVP se lanza sin Mercado Pago, sin landing y sin dominio propio — venta
+  persona a persona, demo en vivo, cobro manual/efectivo. Esos 3 puntos
+  pasan de bloqueantes duros a "postergados, no olvidar" en
+  `docs/ROADMAP.md`. Lo único que sigue siendo bloqueante inmediato:
+  términos de uso mínimos (hacer ahora).
+- **Tope de 250 facturas/mes — diseño funcional completo** (ADR-0008 repo
+  general, no implementado todavía): contador en la DB de la app, aviso al
+  acercarse al límite, corte al llegar a 250 salvo pago de un plus (bloqueado
+  hasta que exista cobro). Mientras no haya cobro (MVP): solo contador +
+  avisos, sin corte.
+- **Pantalla de espera (ADR-0005 repo general) ampliada**: además del cold
+  start de Render, ahora también enmascara los reintentos automáticos ante
+  un 503 de Gemini — el usuario nunca ve "reintentando", ve el carrusel de
+  tips. Pasa a prioridad alta pre-lanzamiento. No implementado todavía.
+- **Onboarding, foco redefinido** (`docs/areas/app/PRODUCTO.md`): no es un
+  carrusel genérico, es el paso crítico de configurar la planilla (crearla,
+  compartir con la SA, pegar la URL) — tiene que ser "a prueba de tontos".
+- **ADR-0001 del área App** (primera decisión propia de esa área):
+  rediseño del formulario de revisión — ocultar campos poco frecuentes
+  salvo que tengan valor extraído, grilla responsiva en desktop,
+  procesamiento automático sin botón manual (resolviendo que la carga
+  múltiple siga funcionando). No implementado todavía.
+- **ADR-0003 del área Planillas (pestañas por período) recibe la idea del
+  founder**: la app crearía la pestaña nueva automáticamente al llegar la
+  primera factura de un período sin pestaña — sigue sin resolver el resto
+  (filtro por mes, fórmulas de total anual).
+- **Backlog "migración v1→v2" reencuadrado como ADR-0010 del área
+  Planillas (pregunta abierta, no decidir todavía)**: no es migrar
+  planillas viejas, es qué hacer cuando un cliente pida una columna extra
+  propia — postura del founder es estar abiertos sin modificar la planilla
+  cliente por cliente, pero el cómo queda sin resolver.
 
-## Next
-1. **Probar la extracción v2 con una foto real en producción.**
-   Qué: subir una factura real (con al menos un impuesto discriminado —
-   IVA, percepción o retención) y confirmar que el prompt nuevo de Gemini la
-   lee bien, incluida la regla de CAE/duda (ADR-0007 + ADR-0008): "X" solo
-   sin ninguna de las 4 vías de autorización, y campo con mejor valor + rojo
-   (sin bloquear guardado) cuando la IA no está segura.
-   Dónde: `https://facturas-saas.onrender.com`.
-   Qué se necesita: nada más que probarlo — el código ya está pusheado.
+## Next — checklist antes de vender (ver ADR-0007, detalle en `docs/ROADMAP.md`)
+1. **Términos de uso, versión mínima.**
+   Qué: cubrir acceso Editor de la SA (incluye soporte), qué datos procesa
+   la app, no-persistencia de imágenes, límites de responsabilidad. No
+   exhaustivo legalmente todavía.
+   Dónde: documento nuevo, ubicación a definir (¿raíz del repo, tipo
+   `TERMINOS.md`?).
+   Qué se necesita: redactarlo — es el único punto 100% pendiente de
+   arrancar.
 
-2. **Armar el set de casos de prueba del prompt** que piden el ADR-0007/0008
-   (factura electrónica A/B/C, ticket consumidor final, tique-factura A,
-   comprobante con CAI, presupuesto sin autorización).
-   Qué: fotos o imágenes de referencia de cada caso, para validar la regla
-   de CAE/duda cada vez que se cambie el prompt.
-   Dónde: no existe todavía, a definir dónde guardarlo (¿`docs/areas/planillas/`?).
-   Qué se necesita: conseguir/armar los comprobantes de ejemplo.
+2. **Reintentos automáticos ante 503 de Gemini, con espera invisible.**
+   Qué: reintentar solo, mostrando la pantalla de espera con carrusel
+   (ADR-0005 repo general) en vez de un mensaje de error — recién si se
+   agotan los reintentos, error amigable.
+   Dónde: `app/services/gemini.py` (backend) + `static/js/app.js`,
+   `templates/app.html` (frontend, ver ADR-0005).
+   Qué se necesita: implementar — documentado, no hecho.
 
-3. **Evaluar el formulario de revisión con ~20 campos por tarjeta.**
-   Qué: hoy es una lista larga sin agrupar por secciones (todos los campos
-   uno debajo del otro). Confirmar si es cómodo de usar en el celular o si
-   conviene agruparlo (ej. datos generales / impuestos / totales).
-   Dónde: `templates/app.html` + `static/js/app.js`.
-   Qué se necesita: probarlo primero en el celular; si molesta, se rediseña.
+3. **Onboarding de configuración de planilla.**
+   Qué: guiar "a prueba de tontos" el paso de crear la planilla, compartirla
+   con la SA, y pegar la URL.
+   Dónde: `docs/areas/app/` — necesita antes una conversación de diseño
+   dedicada para los textos/pasos concretos.
+   Qué se necesita: esa conversación de diseño, después implementar.
 
-4. **Retomar el ADR-0003 (pestañas por período)** del área Planillas: cómo
-   se pasa de un período a otro, y qué pasa con el filtro por mes y las
-   fórmulas de total anual (ADR-0002) si los datos quedan repartidos en
-   varias pestañas.
+4. **Tope de 250 facturas/mes, versión soft (sin corte).**
+   Qué: contador en la DB + aviso al acercarse al límite (ej. 200).
+   Dónde: `app/models.py::User.invoices_this_month` (ya existe el campo),
+   diseño funcional completo en `docs/decisions/0008-tope-facturas-mensual.md`.
+   Qué se necesita: implementar el aviso en la UI y definir el reset
+   mensual del contador (no diseñado todavía).
+
+5. **Rediseño del formulario de revisión** (ADR-0001 área App): ocultar
+   campos poco frecuentes salvo que tengan valor, grilla responsiva en
+   desktop, procesamiento automático sin botón manual.
+   Dónde: `templates/app.html`, `static/js/app.js`, `static/css/app.css`.
+   Qué se necesita: implementar — probarlo en el celular junto con esto.
+
+## Deuda técnica / discusiones abiertas (no bloquean vender)
+- Armar el set de casos de prueba del prompt (ADR-0007/0008 área Planillas)
+  — necesita fotos/imágenes de referencia, no existe todavía.
+- ADR-0003 área Planillas (pestañas por período) — sigue sin resolver el
+  filtro por mes y las fórmulas de total anual.
+- ADR-0010 área Planillas (columnas custom por cliente) — pregunta abierta,
+  no decidir todavía.
+- Confirmar en producción una foto real con impuestos discriminados (IVA,
+  percepción o retención) — CAE, duda y duplicados ya confirmados.
 
 ## Post-MVP (no bloquea nada de lo de arriba)
 - Guardar la imagen del comprobante en el Drive del cliente, en vez de
@@ -116,6 +168,10 @@ extracción con una foto real usando el prompt nuevo.
   archivo `{fecha}_{proveedor}_{numero}.jpg`. Depende de: el resultado de un
   experimento aislado de OAuth con scope `drive.file` (fuera de este repo).
 - Canal de WhatsApp del prototipo — decidido que NO va en el MVP.
+- Mercado Pago suscripciones + landing page + dominio propio — postergados
+  (ADR-0007), necesarios para escalar más allá de clientes conocidos.
+- Upsell de facturas adicionales al superar el tope mensual — depende de
+  que exista cobro online (ADR-0008).
 
 ## Blocked
 - Nada bloqueado en este momento.
@@ -161,3 +217,25 @@ extracción con una foto real usando el prompt nuevo.
   Organigrama vivo en `docs/ORGANIGRAMA.md`, roles se crean con cada área
   nueva. CEO (Jordi) dirige sin ejecutar; CPO (Claude) encargado de las
   áreas App y Planillas.
+- 2026-07-07: ADR-0007 (repo general) — MVP se lanza sin cobro online, sin
+  landing y sin dominio propio (venta persona a persona, demo presencial,
+  cobro manual). Esos 3 puntos pasan a postergados, no bloqueantes.
+  Términos de uso mínimos pasan a ser el único bloqueante inmediato.
+- 2026-07-07: ADR-0008 (repo general) — diseño funcional del tope de 250
+  facturas/mes: contador en la DB de la app, avisos al acercarse al límite,
+  corte al llegar al tope salvo pago de un plus (bloqueado hasta que exista
+  cobro). MVP: solo contador + avisos, sin corte.
+- 2026-07-07: ADR-0005 (repo general) ampliado — la pantalla de espera del
+  cold start de Render también enmascara los reintentos automáticos ante
+  503 de Gemini; pasa a prioridad alta pre-lanzamiento.
+- 2026-07-07: ADR-0001 (área App, primera decisión propia) — rediseño del
+  formulario de revisión: ocultar campos poco frecuentes salvo que tengan
+  valor, grilla responsiva en desktop, procesamiento automático sin botón
+  manual.
+- 2026-07-07: foco del onboarding redefinido (`docs/areas/app/PRODUCTO.md`):
+  no es un carrusel genérico, es el paso de configurar la planilla.
+- 2026-07-07: ADR-0003 (área Planillas) recibe la idea de creación
+  automática de pestaña por período — sigue sin resolver el resto.
+- 2026-07-07: ADR-0010 (área Planillas, pregunta abierta) — qué hacer
+  cuando un cliente pida una columna custom propia; reencuadra el punto de
+  backlog que antes decía "migración v1→v2".

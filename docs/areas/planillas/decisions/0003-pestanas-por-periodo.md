@@ -16,10 +16,22 @@ una pestaña específica por período, nombrada con el período actual (ej.
 - El nombre de la pestaña sigue una convención fija (ej. `JUL-26`,
   `AGO-26`).
 
+## Idea registrada del founder (2026-07-07) — sigue sin resolver, no implementar
+Cuando se retome: la app **crea la pestaña nueva automáticamente** al cargar
+la primera factura cuyo período no tiene pestaña todavía. Ejemplo: llega la
+primera factura con fecha 01/08 → se crea la pestaña "AGO-26" vacía, con el
+mismo encabezado que las demás, y esa factura va ahí. No hay que crear las
+pestañas de antemano ni de forma manual.
+
+Esto resuelve el primer sub-punto del dilema de abajo, pero **no** los
+demás (filtro por mes, fórmulas de total anual, uso de `sheet1`) — siguen
+abiertos.
+
 ## El dilema abierto (por eso es un ticket, no un ADR resuelto)
 ¿Cómo se pasa de un período a otro?
-- ¿La app crea la pestaña del mes nuevo automáticamente la primera vez que
-  hay que escribir ahí, o hay que crearlas todas de antemano?
+- ~~¿La app crea la pestaña del mes nuevo automáticamente la primera vez que
+  hay que escribir ahí, o hay que crearlas todas de antemano?~~ Resuelto
+  arriba: se crea automáticamente.
 - ¿Qué pasa con `list_invoices` y el filtro por mes que ya existe hoy (que
   asume UNA sola pestaña con todas las filas, filtrando por la columna
   `fecha`) — pasaría a leer una pestaña específica en vez de filtrar?
