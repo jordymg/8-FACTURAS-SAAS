@@ -120,6 +120,15 @@
     header.appendChild(crearBtnDescartar(card, "Descartar este comprobante"));
     card.appendChild(header);
 
+    // Aviso de posible duplicado (ADR-0009 planillas) — no bloquea nada,
+    // solo informa antes de que el usuario llegue al botón de guardar.
+    if (r.duplicado) {
+      const avisoDup = document.createElement("div");
+      avisoDup.className = "aviso-duplicado";
+      avisoDup.textContent = `Esta factura ya la subiste el ${r.duplicado} a tu planilla.`;
+      card.appendChild(avisoDup);
+    }
+
     const body = document.createElement("div");
     body.className = "card-body";
     const grid = document.createElement("div");

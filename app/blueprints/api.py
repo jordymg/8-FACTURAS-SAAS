@@ -47,6 +47,11 @@ def extract():
     if not files:
         return jsonify({"error": "missing files"}), 400
 
+    # Se lee la planilla una sola vez por lote (no por archivo) para chequear
+    # duplicados (ADR-0009) — evita releer todo el Sheet varias veces si se
+    # suben varias fotos juntas.
+    invoices_existentes = sheets.list_invoices(user.spreadsheet_id) if user.spreadsheet_id else []
+
     resultados = []
     for file in files:
         mime_type = file.content_type or "image/jpeg"
@@ -67,7 +72,13 @@ def extract():
         # de la IA (ADR-0007), se manda aparte para que el frontend resalte
         # esos campos en rojo en vez de tratarlos como un valor más.
         inciertos = fields.pop("campos_inciertos", [])
-        resultados.append({"nombre": file.filename, "ok": True, "fields": fields, "inciertos": inciertos})
+        duplicado = sheets.find_duplicate(
+            invoices_existentes, fields.get("cuit"), fields.get("numero"), fields.get("fecha")
+        )
+        resultados.append({
+            "nombre": file.filename, "ok": True, "fields": fields,
+            "inciertos": inciertos, "duplicado": duplicado,
+        })
 
     return jsonify(resultados)
 

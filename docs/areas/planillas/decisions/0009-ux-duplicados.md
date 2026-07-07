@@ -7,9 +7,14 @@
 La detección de duplicados por `cuit`+`numero` ya está decidida (ADR-0002,
 "Python antes de escribir"), pero faltaba definir qué hace la app cuando
 efectivamente detecta uno — el ADR-0002 solo decía que la detección existe,
-no qué pasa después.
+no qué pasa después. Además, se ajustó el criterio de match: 2 campos
+(`cuit`+`numero`) eran insuficientes — se pasa a 3.
 
 ## Decisión
+**Criterio de match, actualizado**: `cuit` + `numero` (N° de Factura) +
+`fecha` (Emisión) — los 3 tienen que coincidir para considerarlo duplicado.
+Corrige/precisa el criterio de 2 campos del ADR-0002.
+
 Al detectar un duplicado, la tarjeta de revisión muestra un **aviso bien
 visible, antes del botón de enviar**: "Esta factura ya la subiste el
 [fecha] a tu planilla" (usando la `cargada_el` de la fila existente).
@@ -22,8 +27,9 @@ corrección de numeración).
 
 ## Consecuencias
 - Requiere **buscar el duplicado en la planilla** antes de mostrar la
-  tarjeta (o antes de habilitar el envío) — comparando `cuit`+`numero` del
-  comprobante recién extraído contra las filas ya cargadas.
+  tarjeta (justo después de la extracción con Gemini) — comparando
+  `cuit`+`numero`+`fecha` del comprobante recién extraído contra las filas
+  ya cargadas.
 - Requiere traer la `cargada_el` de la fila existente para mostrarla en el
   aviso.
-- No implementado todavía — queda documentado para cuando se priorice.
+- Implementación: en curso.

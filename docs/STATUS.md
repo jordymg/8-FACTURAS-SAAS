@@ -54,14 +54,16 @@ extracción con una foto real usando el prompt nuevo.
   alcance por ahora (README + PRODUCTO.md stub + STATUS.md), sin decisiones
   propias — el contenido sale de una conversación de diseño dedicada,
   todavía pendiente.
+- **UX de duplicados implementada (ADR-0009, área Planillas)**: criterio
+  ajustado a 3 campos (`cuit`+`numero`+`fecha`, normalizado contra ceros a
+  la izquierda). `sheets.find_duplicate()` + aviso amarillo no bloqueante en
+  la tarjeta de revisión con la fecha de carga de la coincidencia. Probado
+  con match exacto, cero a la izquierda distinto, y no-match por fecha.
 - **Documentado, sin implementar** (queda para cuando se priorice):
   - `docs/decisions/0005-pantalla-espera-cold-start.md` (repo general, no
     confundir con el ADR-0005 del área Planillas): pantalla propia con
     carrusel de mensajes mientras Render despierta del cold start,
     complementaria al upgrade de plan pago (ADR-0001).
-  - `docs/areas/planillas/decisions/0009-ux-duplicados.md`: al detectar un
-    duplicado (cuit+numero, ADR-0002), aviso visible antes de enviar con la
-    fecha en que se cargó la factura existente — no bloquea el guardado.
   - `docs/ROADMAP.md`: reintentos automáticos ante 503 de Gemini + mensaje
     de error amigable, marcado prioridad alta pre-lanzamiento (Fase 2); y
     política de acceso de soporte (la Service Account ya tiene acceso
@@ -139,3 +141,7 @@ extracción con una foto real usando el prompt nuevo.
   términos de uso antes de lanzar) — ambos anotados en `docs/ROADMAP.md`.
 - 2026-07-07: nueva área `docs/areas/app/` (diseño/UX de la app) — solo
   estructura y alcance, sin decisiones propias todavía.
+- 2026-07-07: ADR-0009 (área Planillas) implementado — criterio de match de
+  duplicados ajustado de 2 a 3 campos (`cuit`+`numero`+`fecha`, no solo
+  `cuit`+`numero` como decía el ADR-0002 originalmente), normalizado contra
+  ceros a la izquierda. Aviso no bloqueante en la tarjeta de revisión.

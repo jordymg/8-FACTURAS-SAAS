@@ -237,6 +237,34 @@ def _serial_to_iso_date(value) -> str:
     return str(value)
 
 
+def _norm_id(value) -> str:
+    """Normaliza un identificador (cuit/numero) para comparar sin que importen
+    ceros a la izquierda (ej. "0017367" y "17367" deben matchear) — ver ADR-0009."""
+    value = str(value or "").strip().lstrip("0")
+    return value or "0"
+
+
+def find_duplicate(invoices: list[dict], cuit: str, numero: str, fecha: str) -> str | None:
+    """Busca, entre las facturas ya cargadas, una con el mismo cuit+numero+fecha
+    (ADR-0009). Devuelve el `cargada_el` de la fila existente, o None si no hay
+    coincidencia. `invoices` viene de list_invoices() — se pasa ya leído para no
+    releer la planilla entera por cada archivo de un lote."""
+    if not (cuit and numero and fecha):
+        return None
+    cuit_n, numero_n, fecha_n = _norm_id(cuit), _norm_id(numero), str(fecha).strip()
+    for inv in invoices:
+        if (
+            _norm_id(inv.get("cuit", "")) == cuit_n
+            and _norm_id(inv.get("numero", "")) == numero_n
+            and str(inv.get("fecha", "")).strip() == fecha_n
+        ):
+            # cargada_el también se guarda como fecha/hora real de Sheets (ver
+            # _serial_to_iso_date) — la convertimos para que se pueda mostrar
+            # en el aviso ("ya la subiste el ...") en vez de un número de serie.
+            return _serial_to_iso_date(inv.get("cargada_el"))
+    return None
+
+
 def list_invoices(spreadsheet_id: str, month: str | None = None) -> list[dict]:
     sheet = _client().open_by_key(spreadsheet_id).sheet1
     rows = sheet.get_all_values(value_render_option="UNFORMATTED_VALUE")

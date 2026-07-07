@@ -41,6 +41,17 @@ resuelto). El ancho de columna pasó de auto-resize a **anchos fijos por
 columna** (`_COLUMN_WIDTHS` en `sheets.py`) — ajustables a mano en Sheets
 después si algo queda muy angosto/ancho.
 
+**UX de duplicados implementada (ADR-0009)**: criterio de match ajustado a
+3 campos (`cuit`+`numero`+`fecha`, no solo 2 como decía el ADR-0002
+originalmente), normalizado para que ceros a la izquierda no rompan el
+match (ej. "0017367" y "17367" se tratan igual). `sheets.find_duplicate()`
+recibe las facturas ya leídas (una sola lectura del Sheet por lote, no por
+archivo) y devuelve la fecha de carga de la coincidencia. `/api/extract` la
+manda al frontend, que muestra un aviso amarillo ("Esta factura ya la
+subiste el...") arriba de la tarjeta — no bloquea el guardado. Probado con
+match exacto, match con cero a la izquierda distinto, y no-match por fecha
+distinta.
+
 ## Next
 1. **Probar el flujo completo en producción** con una foto real: confirmar
    que el prompt nuevo de Gemini extrae bien los ~20 campos (sobre todo el
@@ -58,7 +69,3 @@ después si algo queda muy angosto/ancho.
    varias pestañas.
 4. Decidir migración de planillas v1 ya conectadas por clientes reales (si
    las hay) a la estructura v2.
-5. **Implementar la UX de duplicados** (ADR-0009, documentada, no hecha
-   todavía): buscar cuit+numero contra las filas ya cargadas antes de
-   habilitar el envío, y mostrar la fecha de carga de la fila existente si
-   hay coincidencia. No bloquea el guardado.
