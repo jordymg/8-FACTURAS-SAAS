@@ -124,12 +124,14 @@
     body.className = "card-body";
     const grid = document.createElement("div");
     grid.className = "campos-grid";
+    const inciertos = r.inciertos || [];
     CAMPOS.forEach((campo) => {
       const lbl = document.createElement("span");
       lbl.className = "campo-label";
       lbl.textContent = campo.label;
       let ctrl;
       const val = (r.fields && r.fields[campo.key]) || "";
+      const enDuda = inciertos.includes(campo.key);
       if (campo.options) {
         ctrl = document.createElement("select");
         campo.options.forEach((op) => {
@@ -139,17 +141,21 @@
           ctrl.appendChild(opt);
         });
         if (campo.required && !campo.options.includes(val)) ctrl.classList.add("campo-vacio");
-        ctrl.addEventListener("change", () => ctrl.classList.remove("campo-vacio", "campo-invalido"));
+        ctrl.addEventListener("change", () => ctrl.classList.remove("campo-vacio", "campo-invalido", "campo-en-duda"));
       } else {
         ctrl = document.createElement("input");
         ctrl.type = "text";
         ctrl.value = val;
         if (campo.required && !val) ctrl.classList.add("campo-vacio");
         ctrl.addEventListener("input", () => {
-          if (ctrl.value.trim()) ctrl.classList.remove("campo-vacio", "campo-invalido");
+          if (ctrl.value.trim()) ctrl.classList.remove("campo-vacio", "campo-invalido", "campo-en-duda");
           else if (campo.required) ctrl.classList.add("campo-vacio");
         });
       }
+      // La IA no pudo determinar este campo con certeza (ADR-0007): queda
+      // vacío y resaltado en rojo hasta que el usuario lo revise/complete.
+      if (enDuda && !val) ctrl.classList.add("campo-en-duda");
+      ctrl.dataset.dudoso = enDuda ? "true" : "false";
       ctrl.className = (ctrl.className ? ctrl.className + " " : "") + "campo-ctrl";
       ctrl.dataset.clave = campo.key;
       if (campo.required) ctrl.dataset.requerido = "true";
@@ -226,6 +232,11 @@
       if (!ctl || ctl.readOnly) return;
       const valor = ctl.value.trim();
       if (campo.required && !valor) { ctl.classList.add("campo-vacio"); valido = false; }
+      if (ctl.dataset.dudoso === "true" && !valor) {
+        ctl.classList.add("campo-en-duda");
+        problemas.push(`${campo.label}: la IA no está segura, revisar y completar`);
+        valido = false;
+      }
       if (campo.key === "fecha" && valor && !/^\d{4}-\d{2}-\d{2}$/.test(valor)) {
         ctl.classList.remove("campo-vacio");
         ctl.classList.add("campo-invalido");

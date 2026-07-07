@@ -61,3 +61,36 @@ en la columna A.
 pendiente de push). Datos reales desencolumnados en la planilla de
 producción del founder: pendiente que el founder pase la URL/ID para
 corregir esas filas puntuales (no se tocó ninguna planilla de producción).
+
+---
+
+## #002 — Ticket A válido catalogado como comprobante en negro
+**Área:** [planillas](areas/planillas/)
+**Fecha:** 2026-07-06
+**Síntoma:** en producción, un Ticket A perfectamente válido (autorizado por
+un controlador fiscal homologado, sin CAE) se guardó con "Tipo Factura" =
+"X" — la letra que el sistema usa para marcar un comprobante no autorizado
+(en negro).
+
+**Causa raíz:** de dominio fiscal, no de código. La regla original (ADR-0005:
+"si la IA no detecta CAE → Tipo Factura = X") asumía que el CAE es la única
+evidencia de autorización de un comprobante argentino. En realidad existen
+al menos cuatro vías: CAE (factura electrónica), CAEA (autorización
+anticipada), CAI (talonario impreso) y marcas de un controlador fiscal
+homologado (tickets y tique-facturas, sin CAE). Un Ticket A autorizado por
+controlador fiscal no tiene CAE, así que la regla original lo marcaba mal.
+
+**Fix:** ver
+[`docs/areas/planillas/decisions/0007-regla-validez-comprobante.md`](areas/planillas/decisions/0007-regla-validez-comprobante.md)
+— corrige la regla de CAE del ADR-0005: "X" solo si no se detecta NINGUNA de
+las 4 vías de autorización, y agrega un principio general de duda (si la IA
+no está segura, el campo queda vacío y se resalta en rojo para que el
+usuario lo revise, en vez de arriesgar un valor). Prompt de Gemini
+actualizado (`app/services/gemini.py`) y nuevo estado visual "campo en duda"
+en el formulario de revisión (`static/js/app.js`, `static/css/app.css`).
+
+**Estado:** ✅ resuelto — regla corregida, mecanismo de duda implementado y
+probado. Prevención pendiente (ver ADR-0007): armar un set de casos de
+prueba del prompt (factura A/B/C electrónica, ticket consumidor final,
+tique-factura A, comprobante con CAI, presupuesto sin autorización) para
+validar la regla en cada cambio futuro.

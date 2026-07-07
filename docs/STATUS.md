@@ -23,14 +23,23 @@ extracción con una foto real usando el prompt nuevo.
   área Planillas): 23 columnas — IVA discriminado por alícuota (10,5/21/27%),
   percepciones (IVA, IIBB ARBA/CABA), retenciones (Ganancias, IVA), SIRTAC,
   Impuestos Internos, Categoría (clasificación libre por la IA), CUENTA y
-  Cód. Proveedor (en blanco por ahora). Regla especial: si no se detecta CAE
-  en el comprobante, "Tipo Factura" se completa con "X". Prompt de Gemini
-  reescrito con reglas explícitas por cada impuesto (evita confundir uno con
-  otro). Dos bugs encontrados y corregidos durante la implementación (ceros a
-  la izquierda perdidos en Punto de Venta/N° de Factura; montos guardados
-  como texto en vez de número por la configuración regional de la planilla)
-  — ambos probados en una pestaña de prueba antes de aplicar. Detalle
-  completo en `docs/areas/planillas/STATUS.md`.
+  Cód. Proveedor (en blanco por ahora). Prompt de Gemini reescrito con reglas
+  explícitas por cada impuesto (evita confundir uno con otro). Dos bugs
+  encontrados y corregidos durante la implementación (ceros a la izquierda
+  perdidos en Punto de Venta/N° de Factura; montos guardados como texto en
+  vez de número por la configuración regional de la planilla) — ambos
+  probados en una pestaña de prueba antes de aplicar. Detalle completo en
+  `docs/areas/planillas/STATUS.md`.
+- **Issue #002 resuelto**: el mismo día del despliegue de la v2, un Ticket A
+  válido (autorizado por controlador fiscal, sin CAE) se guardó como "Tipo
+  Factura" = "X" (comprobante en negro) — falso positivo. Corregido por
+  ADR-0007 (área Planillas): "X" solo si no se detecta NINGUNA de las 4 vías
+  de autorización (CAE, CAEA, CAI, controlador fiscal), y se agrega un
+  **principio de duda general**: si la IA no está segura de un campo, lo
+  deja vacío en vez de arriesgar un valor, y el formulario lo resalta en
+  rojo hasta que el usuario lo complete (nueva clase `campo-en-duda`).
+  Probado con una imagen ambigua antes de dar por bueno. Ver
+  `docs/ISSUES.md` #002.
 - Reconectar una planilla ya creada (vía `/app/config`, pegando la misma
   URL/ID de nuevo) reescribe el encabezado a la estructura vigente — sirve
   para llevar una planilla vieja (v1) a la v2 sin tocar código. Las filas de
@@ -45,18 +54,28 @@ extracción con una foto real usando el prompt nuevo.
 1. **Probar la extracción v2 con una foto real en producción.**
    Qué: subir una factura real (con al menos un impuesto discriminado —
    IVA, percepción o retención) y confirmar que el prompt nuevo de Gemini la
-   lee bien, sobre todo la regla de CAE ausente → "Tipo Factura" = "X".
+   lee bien, incluida la regla corregida de CAE/duda (ADR-0007): "X" solo
+   sin ninguna de las 4 vías de autorización, y campo vacío + rojo cuando
+   la IA no está segura.
    Dónde: `https://facturas-saas.onrender.com`.
    Qué se necesita: nada más que probarlo — el código ya está pusheado.
 
-2. **Evaluar el formulario de revisión con ~20 campos por tarjeta.**
+2. **Armar el set de casos de prueba del prompt** que pide el ADR-0007
+   (factura electrónica A/B/C, ticket consumidor final, tique-factura A,
+   comprobante con CAI, presupuesto sin autorización).
+   Qué: fotos o imágenes de referencia de cada caso, para validar la regla
+   de CAE/duda cada vez que se cambie el prompt.
+   Dónde: no existe todavía, a definir dónde guardarlo (¿`docs/areas/planillas/`?).
+   Qué se necesita: conseguir/armar los comprobantes de ejemplo.
+
+3. **Evaluar el formulario de revisión con ~20 campos por tarjeta.**
    Qué: hoy es una lista larga sin agrupar por secciones (todos los campos
    uno debajo del otro). Confirmar si es cómodo de usar en el celular o si
    conviene agruparlo (ej. datos generales / impuestos / totales).
    Dónde: `templates/app.html` + `static/js/app.js`.
    Qué se necesita: probarlo primero en el celular; si molesta, se rediseña.
 
-3. **Retomar el ADR-0003 (pestañas por período)** del área Planillas: cómo
+4. **Retomar el ADR-0003 (pestañas por período)** del área Planillas: cómo
    se pasa de un período a otro, y qué pasa con el filtro por mes y las
    fórmulas de total anual (ADR-0002) si los datos quedan repartidos en
    varias pestañas.
@@ -84,3 +103,8 @@ extracción con una foto real usando el prompt nuevo.
 - 2026-07-06: ADR-0005 + ADR-0006 (área Planillas) — estructura v2 de la
   planilla (23 columnas), reemplaza la v1. Implementada el mismo día.
 - 2026-07-06: README.md de la raíz reemplazado (contenido traído de `inbox/`).
+- 2026-07-06: ADR-0007 (área Planillas) — corrige la regla de CAE del
+  ADR-0005 tras el Issue #002 (falso positivo real en producción). "X" solo
+  sin ninguna de las 4 vías de autorización (CAE, CAEA, CAI, controlador
+  fiscal); nuevo principio de duda general para todo el formulario de
+  revisión.

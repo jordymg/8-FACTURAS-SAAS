@@ -24,7 +24,13 @@ _PROMPT = (
     "descripción de cada campo. NO sumes ni mezcles dos impuestos distintos en un mismo "
     "campo (ej. Impuestos Internos NO es IVA, una Percepción de IIBB NO es una Retención de "
     "Ganancias). Si un monto no corresponde claramente a ninguno de los campos definidos, "
-    "dejalo afuera — no lo fuerces en el campo que más se parezca."
+    "dejalo afuera — no lo fuerces en el campo que más se parezca.\n\n"
+    "Regla de duda (importante, ver ADR-0007 del área de Planillas): si no podés determinar "
+    "con certeza el valor de un campo — por ejemplo, si no ves ninguna evidencia clara de que "
+    "el comprobante esté autorizado (CAE, CAEA, CAI, o marcas de un controlador fiscal "
+    "homologado) para decidir el campo 'tipo' — NO inventes ni elijas el valor que te parezca "
+    "más probable: dejá ese campo como string vacío y agregá su clave a 'campos_inciertos'. Es "
+    "mejor marcar duda (para que una persona lo revise) que arriesgar un valor incorrecto."
 )
 
 
@@ -42,9 +48,21 @@ def extract_invoice(image_bytes: bytes, mime_type: str = "image/jpeg") -> Option
             response_schema={
                 "type": "object",
                 "properties": {
-                    f["key"]: {"type": "string", "description": f["description"]} for f in FIELDS
+                    **{
+                        f["key"]: {"type": "string", "description": f["description"]} for f in FIELDS
+                    },
+                    "campos_inciertos": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": (
+                            "Claves (de los campos de arriba) donde NO estás seguro del valor "
+                            "extraído. En esos casos el campo correspondiente debe quedar vacío "
+                            '("") y su clave va acá, para que una persona lo revise a mano antes '
+                            "de guardar. Lista vacía si no hay ninguna duda."
+                        ),
+                    },
                 },
-                "required": FIELD_KEYS,
+                "required": FIELD_KEYS + ["campos_inciertos"],
             },
         ),
     )

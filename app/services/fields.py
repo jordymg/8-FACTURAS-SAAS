@@ -1,6 +1,6 @@
 """
 Campos que la IA extrae y el usuario puede editar en la tarjeta de revisión
-— estructura v2 (ADR-0005 + ADR-0006, docs/areas/planillas/decisions/).
+— estructura v2 (ADR-0005 + ADR-0006 + ADR-0007, docs/areas/planillas/decisions/).
 Único lugar a editar si cambian estos campos — lo usan gemini.py (qué
 pedirle a la IA) y el frontend (formulario de revisión).
 
@@ -25,10 +25,15 @@ FIELDS = [
      )},
     {"key": "tipo", "label": "Tipo Factura", "required": False,
      "description": (
-         "Letra del comprobante (A, B, C, etc.) tal como está impresa. Si NO ves un CAE "
-         "(Código de Autorización Electrónico — un número largo, generalmente junto a un "
-         "código de barras o QR) en el comprobante, devolvé 'X' en vez de la letra impresa "
-         "— indica un comprobante no autorizado por AFIP (en negro)."
+         "Letra del comprobante (A, B, C, etc.) tal como está impresa. Un comprobante está "
+         "autorizado si tiene AL MENOS UNA de estas evidencias: CAE (factura electrónica, un "
+         "número largo junto a un código de barras/QR), CAEA (autorización anticipada), CAI "
+         "(talonario impreso), o marcas de un controlador fiscal homologado (logo fiscal / "
+         "código de equipo — común en tickets y tique-facturas que no tienen CAE). Si NO ves "
+         "NINGUNA de estas evidencias, devolvé 'X' en vez de la letra impresa — indica un "
+         "comprobante no autorizado (en negro). Si no podés determinar con certeza si está "
+         "autorizado (ej. foto cortada, marca ilegible), NO elijas ningún valor: dejá este "
+         "campo vacío y agregá 'tipo' a campos_inciertos — ver regla de duda general."
      )},
     {"key": "punto_venta", "label": "Punto de Venta", "required": False,
      "description": "Punto de venta del comprobante (ej. 0001), sin el número de factura"},

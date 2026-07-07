@@ -46,6 +46,12 @@ El número de CAE **no se guarda** en ninguna columna. Se usa únicamente para
 que la IA determine si el comprobante está autorizado (CAE presente → letra
 real A/B/C/etc.) o no (CAE ausente → `"X"` en la columna Tipo Factura).
 
+> ⚠️ **Corregido por [ADR-0007](0007-regla-validez-comprobante.md):** el CAE
+> no es la única evidencia de autorización — también cuentan CAEA, CAI y
+> controlador fiscal homologado. "X" solo si no se detecta NINGUNA de las 4.
+> Además, si la IA no está segura, el campo queda vacío (no elige un valor)
+> y se resalta para revisión manual — ver ese ADR para el detalle completo.
+
 ## Resuelto (ADR-0006)
 Categoría, CUENTA y Cód. Proveedor ya tienen decisión — ver
 [`decisions/0006-categoria-cuenta-cod-proveedor.md`](0006-categoria-cuenta-cod-proveedor.md).

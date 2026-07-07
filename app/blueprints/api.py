@@ -63,7 +63,11 @@ def extract():
             resultados.append({"nombre": file.filename, "ok": False, "error": str(e)})
             continue
 
-        resultados.append({"nombre": file.filename, "ok": True, "fields": fields})
+        # campos_inciertos no es un dato del comprobante — es la señal de duda
+        # de la IA (ADR-0007), se manda aparte para que el frontend resalte
+        # esos campos en rojo en vez de tratarlos como un valor más.
+        inciertos = fields.pop("campos_inciertos", [])
+        resultados.append({"nombre": file.filename, "ok": True, "fields": fields, "inciertos": inciertos})
 
     return jsonify(resultados)
 

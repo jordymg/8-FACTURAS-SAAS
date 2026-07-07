@@ -3,11 +3,23 @@
 ## Estado actual
 **Estructura v2 implementada** (ADR-0005 + ADR-0006, 23 columnas — IVA por
 alícuota, percepciones, retenciones, Cód. Proveedor, Categoría clasificada
-libremente por la IA, CUENTA en blanco, regla CAE ausente → Tipo Factura =
-"X"). Reemplaza la v1 (9 columnas simples). Probado con datos realistas en
-una pestaña de prueba antes de dar por buena la implementación.
+libremente por la IA, CUENTA en blanco). Reemplaza la v1 (9 columnas
+simples). Probado con datos realistas en una pestaña de prueba antes de dar
+por buena la implementación.
 
-Bugs nuevos encontrados y corregidos durante la implementación de la v2:
+**Regla de CAE corregida por Issue #002 / ADR-0007**: el uso real detectó un
+falso positivo (Ticket A válido marcado como comprobante en negro) el mismo
+día del despliegue de la v2. El CAE no es la única evidencia de
+autorización — también cuentan CAEA, CAI y controlador fiscal homologado.
+"Tipo Factura" = "X" solo si no se detecta NINGUNA de las 4. Además, se
+estableció un **principio de duda general**: si la IA no está segura de un
+campo, lo deja vacío en vez de arriesgar un valor, y el formulario de
+revisión lo resalta en rojo hasta que el usuario lo complete. Implementado
+en el prompt de Gemini y en `static/js/app.js` / `static/css/app.css`
+(clase `campo-en-duda`), probado con una imagen ambigua antes de dar por
+bueno.
+
+Bugs encontrados y corregidos durante la implementación de la v2:
 - **Ceros a la izquierda perdidos** en Punto de Venta y N° de Factura (ej.
   "0014" → 14): Sheets los interpretaba como número bajo `USER_ENTERED`. Se
   fuerzan a texto (truco del apóstrofe inicial) para `cuit`, `punto_venta` y
@@ -18,9 +30,7 @@ Bugs nuevos encontrados y corregidos durante la implementación de la v2:
   quedaba como texto (rompía el formato de moneda y las fórmulas del
   ADR-0002). Se manda como `float` de Python en vez de string, para no
   depender de la configuración regional de la planilla del cliente.
-- `validarCard()` en `static/js/app.js` todavía validaba la clave vieja
-  `"iva"` (ya no existe) — actualizado a la lista completa de columnas
-  monetarias de la v2.
+- **Falso positivo de CAE** (Issue #002): ver arriba.
 
 Lo ya implementado de la v1 sigue vigente sin cambios: metodología de
 cálculo (ADR-0002), encabezado protegido y reescrito siempre con textos
@@ -33,13 +43,17 @@ después si algo queda muy angosto/ancho.
 ## Next
 1. **Probar el flujo completo en producción** con una foto real: confirmar
    que el prompt nuevo de Gemini extrae bien los ~20 campos (sobre todo el
-   IVA discriminado por alícuota y la regla de CAE → "X"), y que el
-   formulario de revisión (ahora ~20 campos por tarjeta) es usable — hoy es
-   una lista larga sin agrupar por secciones, podría valer la pena
+   IVA discriminado por alícuota y la regla de duda de Tipo Factura), y que
+   el formulario de revisión (ahora ~20 campos por tarjeta) es usable — hoy
+   es una lista larga sin agrupar por secciones, podría valer la pena
    repensarlo si se siente incómodo de usar en el celular.
-2. Retomar el ADR-0003 (pestañas por período) cuando se discuta: cómo se
+2. **Armar el set de casos de prueba del prompt** que pide el ADR-0007
+   (factura electrónica A/B/C, ticket consumidor final, tique-factura A,
+   comprobante con CAI, presupuesto sin autorización) para validar la regla
+   de CAE/duda en cada cambio futuro del prompt — todavía no existe.
+3. Retomar el ADR-0003 (pestañas por período) cuando se discuta: cómo se
    pasa de un período a otro, y qué pasa con el filtro por mes y las
    fórmulas de total anual (ADR-0002) si los datos quedan repartidos en
    varias pestañas.
-3. Decidir migración de planillas v1 ya conectadas por clientes reales (si
+4. Decidir migración de planillas v1 ya conectadas por clientes reales (si
    las hay) a la estructura v2.
