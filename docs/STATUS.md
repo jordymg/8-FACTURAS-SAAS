@@ -55,10 +55,12 @@ extracción con una foto real usando el prompt nuevo.
   propias — el contenido sale de una conversación de diseño dedicada,
   todavía pendiente.
 - **UX de duplicados implementada (ADR-0009, área Planillas)**: criterio
-  ajustado a 3 campos (`cuit`+`numero`+`fecha`, normalizado contra ceros a
-  la izquierda). `sheets.find_duplicate()` + aviso amarillo no bloqueante en
-  la tarjeta de revisión con la fecha de carga de la coincidencia. Probado
-  con match exacto, cero a la izquierda distinto, y no-match por fecha.
+  final `proveedor`+`numero`+`fecha` (se sacó `cuit` — Issue #003, ver
+  `docs/ISSUES.md`). `sheets.find_duplicate()` + aviso amarillo no
+  bloqueante en la tarjeta de revisión con la fecha de carga de la
+  coincidencia, también contra otras fotos de la misma tanda. **Confirmado
+  funcionando en producción por el founder** (factura en negro sin CUIT
+  repetida, ya se detecta bien).
 - **Documentado, sin implementar** (queda para cuando se priorice):
   - `docs/decisions/0005-pantalla-espera-cold-start.md` (repo general, no
     confundir con el ADR-0005 del área Planillas): pantalla propia con
@@ -142,6 +144,9 @@ extracción con una foto real usando el prompt nuevo.
 - 2026-07-07: nueva área `docs/areas/app/` (diseño/UX de la app) — solo
   estructura y alcance, sin decisiones propias todavía.
 - 2026-07-07: ADR-0009 (área Planillas) implementado — criterio de match de
-  duplicados ajustado de 2 a 3 campos (`cuit`+`numero`+`fecha`, no solo
-  `cuit`+`numero` como decía el ADR-0002 originalmente), normalizado contra
-  ceros a la izquierda. Aviso no bloqueante en la tarjeta de revisión.
+  duplicados, versión final: `proveedor`+`numero`+`fecha` (no `cuit`+`numero`
+  como decía el ADR-0002 originalmente). Se pasó primero por una versión
+  intermedia con `cuit` en vez de `proveedor`, mal por Issue #003 (facturas
+  en negro casi nunca tienen CUIT visible) — corregida el mismo día. Aviso
+  no bloqueante en la tarjeta de revisión, también contra duplicados dentro
+  de la misma tanda. Confirmado funcionando en producción.
