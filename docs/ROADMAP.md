@@ -24,6 +24,8 @@ Exit criterion: founder saves a real invoice from su celular a su propio Sheet v
 Goal: uncle + 1 more user run a full month unassisted.
 - [ ] Month filter + export (.xlsx / share link)
 - [ ] Photo-quality hint + error handling on extraction
+- [ ] **Prioridad alta pre-lanzamiento**: reintentos automáticos ante 503 de
+      Gemini + mensaje de error amigable (todavía no implementado)
 - [ ] Onboarding: first-run explains flow in 3 screens
 - [ ] Invoice counter + 250/month cap (soft, no payment yet)
 
@@ -35,6 +37,12 @@ Exit criterion: PRD §7 items 1–2 true (uncle's month + accountant accepts the
 - [ ] Deploy to production with custom domain
 - [ ] Success metric tracking in place (paying users count)
 - [ ] First real paying user completes core action
+- [ ] **Política de acceso de soporte definida**: cuando un cliente necesita
+      ayuda para cargar o revisar su planilla, podemos entrar a verla (la
+      Service Account ya tiene acceso Editor) — reflejar esto en los
+      términos de uso antes del lanzamiento (ver
+      `docs/decisions/0004-service-account-sheets.md` para el porqué de que
+      la SA tenga ese acceso)
 
 ## Later / icebox
 - ARCA/AFIP integration
@@ -43,3 +51,6 @@ Exit criterion: PRD §7 items 1–2 true (uncle's month + accountant accepts the
 - Automatic categorization
 - Stats dashboard
 - Accountant multi-client mode
+- Vista interna de solo-lectura / debug mode para soporte (post-MVP —
+  alternativa más acotada al acceso Editor completo de la SA, evaluar
+  cuando haya varios clientes reales)

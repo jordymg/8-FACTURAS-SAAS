@@ -58,3 +58,7 @@ después si algo queda muy angosto/ancho.
    varias pestañas.
 4. Decidir migración de planillas v1 ya conectadas por clientes reales (si
    las hay) a la estructura v2.
+5. **Implementar la UX de duplicados** (ADR-0009, documentada, no hecha
+   todavía): buscar cuit+numero contra las filas ya cargadas antes de
+   habilitar el envío, y mostrar la fecha de carga de la fila existente si
+   hay coincidencia. No bloquea el guardado.

@@ -109,9 +109,11 @@ decidido. Las reglas:
    Consecuencias. Eso evita que una IA futura vuelva a litigar algo cerrado.
 3. **Áreas de I+D por producto.** Los "productos internos" del proyecto
    tienen su propia carpeta en `docs/areas/` con su `PRODUCTO.md`,
-   `STATUS.md` y `decisions/` propios. Hoy existe una: **planillas** (el
-   diseño de la planilla que recibe el cliente). Regla de oro: ningún cambio
-   de estructura de la planilla se programa sin un ADR previo en esa área.
+   `STATUS.md` y `decisions/` propios. Hoy existen dos: **planillas** (el
+   diseño de la planilla que recibe el cliente) y **app** (el diseño/UX de
+   la PWA que usa el cliente). Regla de oro: ningún cambio de estructura de
+   la planilla, ni de flujo/pantalla significativo de la app, se programa
+   sin un ADR previo en la área que corresponda.
 4. **Los problemas que muerden quedan escritos.** `docs/ISSUES.md` loguea
    los bugs que tocaron datos reales, que encontró el uso (no nosotros), o
    cuya causa es una rareza de un sistema externo que puede volver a

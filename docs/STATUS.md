@@ -50,6 +50,24 @@ extracción con una foto real usando el prompt nuevo.
   `inbox/`) — explica el producto, cómo se trabaja el repo (ADRs, áreas de
   I+D, `docs/ISSUES.md`) y linkea toda la documentación. Todos los links
   relativos a `/docs` verificados.
+- **Nueva área `docs/areas/app/`** (diseño/UX de la app): solo estructura y
+  alcance por ahora (README + PRODUCTO.md stub + STATUS.md), sin decisiones
+  propias — el contenido sale de una conversación de diseño dedicada,
+  todavía pendiente.
+- **Documentado, sin implementar** (queda para cuando se priorice):
+  - `docs/decisions/0005-pantalla-espera-cold-start.md` (repo general, no
+    confundir con el ADR-0005 del área Planillas): pantalla propia con
+    carrusel de mensajes mientras Render despierta del cold start,
+    complementaria al upgrade de plan pago (ADR-0001).
+  - `docs/areas/planillas/decisions/0009-ux-duplicados.md`: al detectar un
+    duplicado (cuit+numero, ADR-0002), aviso visible antes de enviar con la
+    fecha en que se cargó la factura existente — no bloquea el guardado.
+  - `docs/ROADMAP.md`: reintentos automáticos ante 503 de Gemini + mensaje
+    de error amigable, marcado prioridad alta pre-lanzamiento (Fase 2); y
+    política de acceso de soporte (la Service Account ya tiene acceso
+    Editor a las planillas — reflejarlo en los términos de uso antes de
+    lanzar, Fase 3), con la idea de una vista de solo-lectura como
+    alternativa post-MVP anotada en el icebox.
 
 ## Next
 1. **Probar la extracción v2 con una foto real en producción.**
@@ -113,3 +131,11 @@ extracción con una foto real usando el prompt nuevo.
   campo con su mejor valor + lo marca "baja certeza" (rojo, sin bloqueo);
   avanzar/guardar es la confirmación implícita. Regla general para todo el
   formulario de revisión.
+- 2026-07-07: documentado (no implementado): pantalla de espera propia para
+  el cold start de Render con carrusel de mensajes (ADR-0005 repo general),
+  UX de duplicados detectados sin bloquear el guardado (ADR-0009 área
+  Planillas), reintentos ante 503 de Gemini (prioridad alta pre-lanzamiento)
+  y política de acceso de soporte vía la Service Account (reflejar en
+  términos de uso antes de lanzar) — ambos anotados en `docs/ROADMAP.md`.
+- 2026-07-07: nueva área `docs/areas/app/` (diseño/UX de la app) — solo
+  estructura y alcance, sin decisiones propias todavía.
