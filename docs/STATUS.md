@@ -8,6 +8,13 @@ sin landing y sin dominio propio — venta persona a persona a conocidos, demo
 presencial, cobro manual. Checklist real de "antes de vender" en
 `docs/ROADMAP.md`.
 
+**Arrancar la próxima sesión por acá**: ADR-0001 (área App, rediseño del
+formulario) está implementado en código (2026-07-07, sin commitear) pero el
+founder probó en local y no vio ningún cambio — sin diagnosticar todavía,
+hipótesis principal caché del navegador. Ver
+`docs/areas/app/decisions/0001-rediseno-formulario-revision.md` (nota
+2026-07-08) y `docs/areas/app/STATUS.md`.
+
 ## Done
 - Pivot de arquitectura: Sheets se escriben con una Service Account en vez de
   OAuth por usuario; el login de Google pide solo identidad (openid + email).
