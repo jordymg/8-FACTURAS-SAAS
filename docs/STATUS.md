@@ -8,12 +8,20 @@ sin landing y sin dominio propio — venta persona a persona a conocidos, demo
 presencial, cobro manual. Checklist real de "antes de vender" en
 `docs/ROADMAP.md`.
 
-**Arrancar la próxima sesión por acá**: ADR-0001 (área App, rediseño del
-formulario) está implementado en código (2026-07-07, sin commitear) pero el
-founder probó en local y no vio ningún cambio — sin diagnosticar todavía,
-hipótesis principal caché del navegador. Ver
-`docs/areas/app/decisions/0001-rediseno-formulario-revision.md` (nota
-2026-07-08) y `docs/areas/app/STATUS.md`.
+**Arrancar la próxima sesión por acá**: ADR-0001 (rediseño del formulario)
+y ADR-0002 (rediseño de la pantalla de inicio, sesión de diseño CEO+CPO del
+2026-07-11) están implementados en código (sin commitear) pero **ninguno
+de los dos está confirmado funcionando en navegador todavía** — la sesión
+anterior el founder no vio cambios (causa sin diagnosticar, hipótesis
+caché), y esta sesión se agregó un fix de cache-busting a los assets
+estáticos que debería resolverlo, pero se cerró antes de volver a probar.
+Ver `docs/areas/app/STATUS.md` y los ADRs 0001/0002 en
+`docs/areas/app/decisions/`.
+
+De paso, esta sesión también se documentó y aplicó
+`docs/decisions/0009-comunicacion-nunca-mencionar-ia.md` (repo general,
+transversal): ningún texto visible de la app puede mencionar IA/Gemini —
+auditoría hecha, 3 textos corregidos.
 
 ## Done
 - Pivot de arquitectura: Sheets se escriben con una Service Account en vez de
@@ -246,3 +254,12 @@ hipótesis principal caché del navegador. Ver
 - 2026-07-07: ADR-0010 (área Planillas, pregunta abierta) — qué hacer
   cuando un cliente pida una columna custom propia; reencuadra el punto de
   backlog que antes decía "migración v1→v2".
+- 2026-07-11: ADR-0009 (repo general) — ningún texto visible de la app
+  menciona IA/Gemini/modelo; se usa "nuestro sistema" o se describe la
+  acción. Retroactivo (3 textos corregidos) y a futuro (carrusel, onboarding,
+  emails).
+- 2026-07-11: ADR-0002 (área App) — rediseño de la pantalla de inicio,
+  sesión de diseño CEO+CPO: auto-procesamiento también ahí, texto de
+  bienvenida sobre la dropzone, ancho máximo del contenido en desktop,
+  botón "Ver planilla de Facturas" en header de 3 zonas. Implementado en
+  código, no confirmado en navegador todavía.
