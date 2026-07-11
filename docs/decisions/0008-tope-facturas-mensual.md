@@ -78,6 +78,15 @@ un caso de calendario que no se puede evitar. **Confirmado explícitamente
 a pedido del founder** con el caso "alta 31 de enero": en un año NO
 bisiesto (2026) el ciclo corta el 28/02; en un año bisiesto (2028) corta
 el 29/02 — sin tocar código, ya se comportaba así.
+
+**Por qué no hace falta más precisión que esto**: el founder aclaró que el
+servicio se piensa como un **abono anual** — no es crítico que la duración
+exacta de cada ciclo mensual sea idéntica mes a mes (28, 29, 30 o 31 días
+según a cuál mes le toque el corte). Lo que importa es el aniversario de
+alta como referencia, no una precisión de reloj mes a mes. Esto confirma
+que el enfoque actual (clamping simple al último día del mes corto) es
+suficiente — no hace falta una librería de cálculo de fechas más
+sofisticada (ej. `dateutil.relativedelta`) ni un diseño más elaborado.
 - `facturas_del_mes()` (solo lectura, no escribe) y
   `registrar_factura_cargada()` (resetea y persiste al guardar una factura,
   `POST /api/invoices`) — mismo patrón sin cron que la versión anterior.
