@@ -321,6 +321,22 @@
     }
   }
 
+  // ── Contador y aviso de tope mensual (ADR-0008) ────────
+  // Se actualizan cada vez que se recargan las últimas facturas (volver a
+  // la home) — el header no se vuelve a renderizar del lado del servidor
+  // después de guardar, así que sin esto quedaba siempre en el valor con
+  // el que cargó la página por primera vez.
+  function actualizarContadorLimite(data) {
+    const contadorEl = document.getElementById("header-contador");
+    const avisoEl = document.getElementById("aviso-limite");
+    if (typeof data.facturas_mes !== "number") return;
+    if (contadorEl) contadorEl.textContent = `${data.facturas_mes}/${data.limite_mensual}`;
+    if (avisoEl) {
+      avisoEl.textContent = `Estás por llegar al límite de facturas de este mes (${data.facturas_mes} de ${data.limite_mensual}).`;
+      avisoEl.classList.toggle("hidden", data.facturas_mes < data.umbral_aviso);
+    }
+  }
+
   // ── Últimas facturas ────────────────────────────────────
   async function loadInvoices() {
     const list = document.getElementById("invoice-list");
@@ -329,6 +345,7 @@
     try {
       const res = await fetch("/api/invoices");
       const data = await res.json();
+      actualizarContadorLimite(data);
       const invoices = (data.invoices || []).slice(-10).reverse();
       if (!invoices.length) {
         list.innerHTML = '<p class="list-empty">Sin facturas aún.</p>';

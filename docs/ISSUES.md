@@ -128,3 +128,54 @@ por revisión de código):
 
 **Estado:** ✅ resuelto y probado (match con CUIT/guiones, factura sin CUIT
 repetida, y duplicado dentro de la misma tanda).
+
+---
+
+## #004 — Contador/aviso del tope mensual nunca se actualizaban en el navegador
+**Área:** [app](areas/app/)
+**Fecha:** 2026-07-11
+**Síntoma:** el founder probó guardar facturas después de implementar el
+ADR-0008 (tope mensual) y el contador del header se quedaba siempre en 0,
+sin importar cuántas facturas guardara.
+
+**Causa raíz:** el contador (`N/250`) y el aviso amarillo se renderizaban
+del lado del servidor **una sola vez**, cuando `/app` cargaba por primera
+vez. Guardar una factura y volver a la home no recarga la página (es
+navegación 100% client-side, JS solo togglea qué `<section>` se muestra) —
+así que esos dos elementos nunca se actualizaban, quedaban congelados en
+el valor que tenían al abrir la app esa vez.
+
+**Fix:** `GET /api/invoices` ahora también devuelve `facturas_mes`,
+`limite_mensual` y `umbral_aviso`; `static/js/app.js::loadInvoices()`
+(ya se llama cada vez que se vuelve a la home) actualiza el contador y el
+aviso con esos datos. El aviso pasó de renderizarse condicionalmente con
+Jinja (`{% if %}`) a existir siempre en el HTML, oculto por una clase
+`hidden` que JS togglea — mismo patrón que el tip rotativo (ADR-0004).
+
+**Estado:** ✅ resuelto y probado (guardar una factura vía la API real y
+volver a consultar `/api/invoices`, tal como haría el navegador, muestra el
+conteo actualizado).
+
+---
+
+## #005 — Misma foto de factura, datos distintos en la extracción
+**Área:** [app](areas/app/) — extracción con Gemini (`app/services/gemini.py`)
+**Fecha:** 2026-07-11
+**Síntoma:** el founder probó subir la misma foto de una factura varias
+veces y obtuvo valores levemente distintos entre una extracción y otra.
+
+**Causa raíz:** `GenerateContentConfig` no fijaba ninguna `temperature` —
+por defecto el modelo puede variar su respuesta entre llamadas para la
+misma entrada (comportamiento esperado de un LLM sin restringir, pensado
+para generación creativa, no para extracción de datos donde se necesita
+la misma lectura siempre).
+
+**Fix:** se agregó `temperature=0` a la config de Gemini — busca la
+interpretación más probable del comprobante de forma consistente entre
+llamadas.
+
+**Estado:** ✅ resuelto — probado con 2 llamadas seguidas sobre la misma
+imagen de prueba, resultado idéntico en ambas. `temperature=0` reduce
+drásticamente la variación pero no es una garantía matemática absoluta de
+determinismo total (limitación conocida de los LLMs a nivel de
+infraestructura) — si vuelve a pasar con una foto real, reportarlo.

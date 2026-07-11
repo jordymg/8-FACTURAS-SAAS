@@ -6,6 +6,7 @@ from flask import Blueprint, redirect, render_template, session, url_for
 from app.models import User, db
 from app.services import sheets
 from app.services.fields import FIELDS
+from app.services.limites import LIMITE_MENSUAL, UMBRAL_AVISO, facturas_del_mes
 from app.services.tips import get_tips
 
 web_bp = Blueprint("web", __name__)
@@ -41,6 +42,7 @@ def app_view():
         "app.html", user=user, strings=_strings(),
         campos_json=json.dumps(FIELDS, ensure_ascii=False),
         tips_json=json.dumps(get_tips(), ensure_ascii=False),
+        facturas_mes=facturas_del_mes(user), umbral_aviso=UMBRAL_AVISO, limite_mensual=LIMITE_MENSUAL,
     )
 
 

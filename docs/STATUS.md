@@ -1,5 +1,13 @@
 # STATUS
 
+## Configuración rápida (constantes que se tocan seguido)
+- **Tope de facturas mensual**: `LIMITE_MENSUAL` y `UMBRAL_AVISO` en
+  `app/services/limites.py`. Detalle completo en
+  `docs/decisions/0008-tope-facturas-mensual.md`.
+- **Extracción de Gemini**: modelo y `temperature` en
+  `app/services/gemini.py`. Detalle en
+  `docs/decisions/0010-extraccion-determinista-temperature-cero.md`.
+
 ## Current phase
 Phase 1 en producción (`https://facturas-saas.onrender.com`), planilla v2
 (23 columnas) confirmada con datos reales. **Re-priorizado el camino a
@@ -272,3 +280,21 @@ auditoría hecha, 3 textos corregidos.
   (no retroactiva). Confirmado funcionando en navegador el mismo día, tras
   ajustar el bloque de texto a centrado con tipografía uniforme entre
   saludo y entrada, y subir el contraste del borde de la dropzone.
+- 2026-07-11: texto de entrada reescrito de nuevo ("Gracias por probar
+  nuestra aplicación" + objetivo de la app) reemplazando el saludo por
+  separado; se agregó un contador `N/200` discreto en el header, siempre
+  visible (no solo el aviso al acercarse al límite).
+- 2026-07-11: ADR-0008 corregido dos veces más el mismo día — límite bajado
+  de 250 a 200 (aviso a 160, ambas constantes en
+  `app/services/limites.py`), y confirmado que el ciclo por fecha de alta
+  ya manejaba bien los meses cortos (alta 31/01 corta el 28/02 en año no
+  bisiesto, 29/02 en bisiesto) sin necesitar cambios de código.
+- 2026-07-11: Issue #004 (`docs/ISSUES.md`) — el contador y el aviso del
+  tope mensual no se actualizaban en el navegador tras guardar una factura
+  (se renderizaban una sola vez del lado del servidor). Corregido:
+  `GET /api/invoices` ahora también devuelve el conteo, y el frontend lo
+  actualiza cada vez que se vuelve a la home.
+- 2026-07-11: Issue #005 (`docs/ISSUES.md`) + ADR-0010 (repo general) — la
+  misma foto de factura podía dar datos distintos entre extracciones
+  porque Gemini no tenía fijada la `temperature`. Se fija en 0
+  (`app/services/gemini.py`) para una lectura consistente.

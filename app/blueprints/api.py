@@ -8,6 +8,7 @@ from app.services import sheets
 from app.services.fields import FIELD_KEYS
 from app.services.formats import MIME_EXTENSIONS
 from app.services.gemini import extract_invoice
+from app.services.limites import LIMITE_MENSUAL, UMBRAL_AVISO, facturas_del_mes, registrar_factura_cargada
 
 api_bp = Blueprint("api", __name__)
 
@@ -114,7 +115,7 @@ def save_invoice():
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 502
 
-    user.invoices_this_month += 1
+    registrar_factura_cargada(user)
     db.session.commit()
 
     return jsonify({"ok": True})
@@ -126,8 +127,16 @@ def get_invoices():
     if not user:
         return jsonify({"error": "unauthorized"}), 401
     if not user.spreadsheet_id:
-        return jsonify({"invoices": []})
+        return jsonify({
+            "invoices": [], "facturas_mes": facturas_del_mes(user),
+            "limite_mensual": LIMITE_MENSUAL, "umbral_aviso": UMBRAL_AVISO,
+        })
 
     month = request.args.get("month")
     invoices = sheets.list_invoices(user.spreadsheet_id, month)
-    return jsonify({"invoices": invoices})
+    return jsonify({
+        "invoices": invoices,
+        "facturas_mes": facturas_del_mes(user),
+        "limite_mensual": LIMITE_MENSUAL,
+        "umbral_aviso": UMBRAL_AVISO,
+    })

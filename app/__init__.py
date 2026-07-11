@@ -1,3 +1,4 @@
+import datetime
 import os
 from flask import Flask
 from dotenv import load_dotenv
@@ -6,6 +7,18 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from app.models import db
 
 load_dotenv()
+
+
+# Columnas de User agregadas después del primer db.create_all() — ver
+# _ensure_schema. Nombre → tipo SQL (compatible con SQLite y Postgres).
+# invoices_month (VARCHAR(7)) quedó obsoleta al pasar el tope de facturas de
+# mes-calendario a ciclo-por-fecha-de-alta — se deja de crear/usar, pero si
+# ya existe en una base (producción) queda como columna huérfana inofensiva.
+_COLUMNAS_NUEVAS = {
+    "spreadsheet_title": "VARCHAR(256)",  # ADR-0003 área App
+    "created_at": "DATE",  # ADR-0008 repo general (ancla el ciclo mensual)
+    "invoices_cycle_start": "DATE",  # ADR-0008 repo general (tope mensual)
+}
 
 
 def _ensure_schema(app: Flask) -> None:
@@ -18,10 +31,20 @@ def _ensure_schema(app: Flask) -> None:
     if "users" not in inspector.get_table_names():
         return
     columnas = {c["name"] for c in inspector.get_columns("users")}
-    if "spreadsheet_title" not in columnas:
-        with db.engine.connect() as conn:
-            conn.execute(text("ALTER TABLE users ADD COLUMN spreadsheet_title VARCHAR(256)"))
-            conn.commit()
+    faltantes = {n: t for n, t in _COLUMNAS_NUEVAS.items() if n not in columnas}
+    if not faltantes:
+        return
+    with db.engine.connect() as conn:
+        for nombre, tipo in faltantes.items():
+            conn.execute(text(f"ALTER TABLE users ADD COLUMN {nombre} {tipo}"))
+        # Backfill: usuarios ya existentes no tienen fecha de alta real
+        # guardada — se usa la fecha de hoy como mejor aproximación
+        # disponible, así el ciclo mensual arranca a andar ya mismo.
+        if "created_at" in faltantes:
+            conn.execute(text(
+                "UPDATE users SET created_at = :hoy WHERE created_at IS NULL"
+            ), {"hoy": datetime.date.today().isoformat()})
+        conn.commit()
 
 
 def create_app() -> Flask:

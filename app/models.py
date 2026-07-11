@@ -17,4 +17,13 @@ class User(db.Model):
     # este campo, hasta que el usuario reconecte.
     spreadsheet_title: str = db.Column(db.String(256))
     sub_status: str = db.Column(db.String(16), default="trial")  # trial / active / blocked
+    # Fecha de alta — ancla el ciclo mensual del tope de facturas (ej. alta
+    # el 10 -> ciclo del 10 al 9 del mes siguiente, no por mes calendario).
+    # Para usuarios de antes de este campo, se hace backfill con la fecha
+    # del día en que se agrega la columna (ver app/__init__.py::_ensure_schema).
+    created_at = db.Column(db.Date)
     invoices_this_month: int = db.Column(db.Integer, default=0)
+    # Fecha de inicio del ciclo actual al que corresponde invoices_this_month
+    # — permite resetear el contador sin un cron (ver
+    # app/services/limites.py, ADR-0008 general).
+    invoices_cycle_start = db.Column(db.Date)

@@ -37,8 +37,26 @@ texto queda centrado y el saludo con la misma tipografía que la entrada
 dropzone. **Confirmado funcionando.**
 
 **Los 4 ADRs (0001, 0002, 0003, 0004) están implementados y CONFIRMADOS
-funcionando** — el founder probó todo en navegador el 2026-07-11. Listo
-para commitear.
+funcionando** — el founder probó todo en navegador el 2026-07-11.
+
+**Ajustes posteriores al probar (mismo día)**: el texto de entrada se
+reescribió de nuevo ("Gracias por probar nuestra aplicación" + el objetivo
+de la app, sin saludo separado) y se agregó un **contador `N/200` en el
+header**, siempre visible, a la izquierda de "Configuración" — ver
+ADR-0008 repo general para el diseño funcional del tope. Listo para
+commitear.
+
+**Dos bugs encontrados por el founder al probar de verdad**, ambos
+resueltos (`docs/ISSUES.md`):
+- **Issue #004**: el contador y el aviso del tope mensual no se
+  actualizaban en el navegador después de guardar una factura (se
+  renderizaban una sola vez del lado del servidor, y volver a la home es
+  navegación client-side). Corregido: `GET /api/invoices` también manda el
+  conteo, el frontend lo actualiza cada vez que se recarga la lista.
+- **Issue #005** (no es de esta área, pero lo reportó probando acá): la
+  misma foto de factura daba datos distintos entre extracciones — Gemini no
+  tenía fijada la `temperature`. Se fija en 0
+  (`app/services/gemini.py`, [ADR-0010 repo general](../../decisions/0010-extraccion-determinista-temperature-cero.md)).
 
 Además, `docs/decisions/0009-comunicacion-nunca-mencionar-ia.md` (repo
 general, transversal): ningún texto visible menciona IA/Gemini — auditoría

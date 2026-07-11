@@ -114,6 +114,14 @@ body {
   .header-email { justify-self: start; max-width: 200px; }
 }
 
+/* Contador de facturas del mes (ADR-0008 repo general) — discreto, al
+   lado de "Configuración". */
+.header-contador {
+  color: var(--gray-500);
+  font-size: .78rem;
+  white-space: nowrap;
+}
+
 .app-title {
   font-weight: 700;
   font-size: 1.1rem;
@@ -128,15 +136,7 @@ body {
 .contenido-centrado { max-width: 760px; margin: 0 auto; }
 
 /* Jerarquía tipográfica de la home (ADR-0004 área App): título del header
-   > .entrada > .saludo y .feedback (mismo tamaño chico entre sí). */
-.saludo {
-  color: var(--gray-900);
-  font-weight: 500;
-  font-size: 1rem;
-  text-align: center;
-  margin-bottom: .3rem;
-}
-
+   > .entrada > .feedback. */
 .entrada {
   color: var(--gray-900);
   font-weight: 500;
@@ -423,6 +423,19 @@ body {
   color: #b5750a;
   font-size: .85rem;
 }
+
+/* Aviso de acercarse al tope mensual de facturas (ADR-0008 repo general) —
+   mismo lenguaje visual que .aviso-duplicado, informativo, no bloquea. */
+.aviso-limite {
+  margin-bottom: 1rem;
+  padding: .6rem .9rem;
+  border-radius: 8px;
+  background: #fff8e6;
+  color: #b5750a;
+  font-size: .85rem;
+  text-align: center;
+}
+.aviso-limite.hidden { display: none; }
 .ok-msg { font-size: .85rem; color: #2e9e5b; padding: .3rem 0; }
 .error-msg { font-size: .83rem; color: var(--red); }
 

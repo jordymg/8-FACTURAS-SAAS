@@ -1,3 +1,4 @@
+import datetime
 import os
 
 import requests
@@ -71,7 +72,8 @@ def google_callback():
 
     user = User.query.filter_by(google_sub=google_sub).first()
     if not user:
-        user = User(google_sub=google_sub, email=email)
+        # created_at ancla el ciclo mensual del tope de facturas (ADR-0008).
+        user = User(google_sub=google_sub, email=email, created_at=datetime.date.today())
         db.session.add(user)
         db.session.commit()
 

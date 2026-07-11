@@ -44,6 +44,11 @@ def extract_invoice(image_bytes: bytes, mime_type: str = "image/jpeg") -> Option
             _PROMPT,
         ],
         config=types.GenerateContentConfig(
+            # temperature=0: queremos la lectura más probable del comprobante,
+            # siempre la misma para la misma imagen — no variación creativa.
+            # Sin esto, la misma foto podía devolver datos levemente distintos
+            # entre una llamada y otra.
+            temperature=0,
             response_mime_type="application/json",
             response_schema={
                 "type": "object",
