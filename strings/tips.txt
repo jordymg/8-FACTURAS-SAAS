@@ -1,0 +1,13 @@
+# Tips que se muestran rotando en la home de la app (y a futuro en la
+# pantalla de espera). Para editar: agregá, sacá o cambiá una línea y
+# guardá el archivo — el deploy es automático (push a git), no hace falta
+# tocar código. Un tip por línea. Las líneas vacías o que empiecen con #
+# (como esta) se ignoran. Si el archivo queda vacío, la app simplemente no
+# muestra tips — no rompe nada.
+
+Podés subir varias facturas juntas seleccionando todas las fotos de una vez.
+Si la foto salió borrosa o cortada, sacala de nuevo — mejor foto, mejores datos.
+Los campos en rojo son datos que necesitan tu confirmación. Revisalos antes de guardar.
+Tu planilla es tuya. Podés abrirla y editarla en Google Sheets cuando quieras.
+Instalá la app en tu celular desde el navegador con "Agregar a pantalla de inicio".
+Sacá la foto con la factura completa y buena luz para que los datos salgan mejor.

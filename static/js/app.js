@@ -349,4 +349,25 @@
   }
 
   if (document.getElementById("screen-capture")) loadInvoices();
+
+  // ── Tips rotativos (ADR-0004 área App) ─────────────────
+  // Un tip por vez, arranca en uno aleatorio, rota cada 9s con fade.
+  const TIPS = window.__TIPS__ || [];
+  const tipEl = document.getElementById("tip-rotativo");
+  if (tipEl && TIPS.length) {
+    let i = Math.floor(Math.random() * TIPS.length);
+    const mostrarTip = () => {
+      tipEl.textContent = `Tip — ${TIPS[i]}`;
+      tipEl.classList.remove("hidden");
+      tipEl.classList.remove("tip-oculto");
+    };
+    mostrarTip();
+    setInterval(() => {
+      tipEl.classList.add("tip-oculto");
+      setTimeout(() => {
+        i = (i + 1) % TIPS.length;
+        mostrarTip();
+      }, 300);
+    }, 9000);
+  }
 })();

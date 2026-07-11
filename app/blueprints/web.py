@@ -6,6 +6,7 @@ from flask import Blueprint, redirect, render_template, session, url_for
 from app.models import User, db
 from app.services import sheets
 from app.services.fields import FIELDS
+from app.services.tips import get_tips
 
 web_bp = Blueprint("web", __name__)
 
@@ -39,6 +40,7 @@ def app_view():
     return render_template(
         "app.html", user=user, strings=_strings(),
         campos_json=json.dumps(FIELDS, ensure_ascii=False),
+        tips_json=json.dumps(get_tips(), ensure_ascii=False),
     )
 
 

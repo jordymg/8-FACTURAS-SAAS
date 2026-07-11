@@ -8,14 +8,16 @@ sin landing y sin dominio propio — venta persona a persona a conocidos, demo
 presencial, cobro manual. Checklist real de "antes de vender" en
 `docs/ROADMAP.md`.
 
-ADR-0001, ADR-0002 y ADR-0003 (rediseño de formulario, pantalla de inicio,
-y header con nombre de planilla + email — los tres del área App) **ya
-confirmados funcionando por el founder en navegador (2026-07-11)**. Ver
-`docs/areas/app/STATUS.md` y los ADRs en `docs/areas/app/decisions/`.
+ADR-0001, ADR-0002, ADR-0003 y ADR-0004 (rediseño de formulario, pantalla
+de inicio, header con nombre de planilla + email, y tips/textos de
+bienvenida — los cuatro del área App) **ya confirmados funcionando por el
+founder en navegador (2026-07-11)**. Ver `docs/areas/app/STATUS.md` y los
+ADRs en `docs/areas/app/decisions/`.
 
 De paso, esta sesión también se documentó y aplicó
 `docs/decisions/0009-comunicacion-nunca-mencionar-ia.md` (repo general,
-transversal): ningún texto visible de la app puede mencionar IA/Gemini —
+transversal, ahora con 2 reglas: nunca mencionar IA, y sin dos puntos en
+textos nuevos): ningún texto visible de la app puede mencionar IA/Gemini —
 auditoría hecha, 3 textos corregidos.
 
 ## Done
@@ -263,3 +265,10 @@ auditoría hecha, 3 textos corregidos.
   conexión, más el email de la cuenta logueada. Nuevo campo
   `User.spreadsheet_title` con auto-migración liviana (sin Alembic).
   Confirmado funcionando en navegador el mismo día.
+- 2026-07-11: ADR-0004 (área App) — archivo de tips editable
+  (`strings/tips.txt`) sin tocar código, uno rotando en la home cada 9s;
+  saludo + texto de entrada agrandado + pedido de feedback arriba de la
+  dropzone. Regla 2 del ADR-0009 general: sin dos puntos en textos nuevos
+  (no retroactiva). Confirmado funcionando en navegador el mismo día, tras
+  ajustar el bloque de texto a centrado con tipografía uniforme entre
+  saludo y entrada, y subir el contraste del borde de la dropzone.

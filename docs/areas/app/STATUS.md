@@ -27,15 +27,24 @@ sin destruir datos. **Probado de punta a punta contra la planilla de
 referencia real** (no un mock): reconectar guardó el título real
 ("Facturas Proveedores - bot") y el header lo mostró correctamente.
 
-**Los 3 ADRs (0001, 0002, 0003) están implementados y CONFIRMADOS
-funcionando** — el founder probó todo en navegador el 2026-07-11 (formulario
-con campos ocultos/grilla 2 columnas, pantalla de inicio con
-auto-procesamiento/bienvenida/ancho centrado, header con nombre de planilla
-+ email) y reportó que anda bien. Listo para commitear.
+**ADR-0004** — tips gestionables + textos de bienvenida/feedback en la home
+(misma sesión de diseño): archivo editable `strings/tips.txt` (`app/services/tips.py::get_tips()`,
+pensado para que la pantalla de espera del ADR-0005 lo reuse a futuro), un
+tip rotando cada 9s con fade, y saludo/entrada/feedback arriba de la
+dropzone. Tras probar en navegador, dos ajustes del founder: el bloque de
+texto queda centrado y el saludo con la misma tipografía que la entrada
+(antes más chico y gris); de paso se subió el contraste del borde de la
+dropzone. **Confirmado funcionando.**
+
+**Los 4 ADRs (0001, 0002, 0003, 0004) están implementados y CONFIRMADOS
+funcionando** — el founder probó todo en navegador el 2026-07-11. Listo
+para commitear.
 
 Además, `docs/decisions/0009-comunicacion-nunca-mencionar-ia.md` (repo
 general, transversal): ningún texto visible menciona IA/Gemini — auditoría
-hecha y corregida en 3 lugares (2 de ellos fuera del área App).
+hecha y corregida en 3 lugares (2 de ellos fuera del área App). Ese mismo
+ADR ahora también agrupa una segunda regla ("sin dos puntos en textos
+nuevos"), sumada por el ADR-0004.
 
 Además, el founder definió el foco del onboarding (ver `PRODUCTO.md`): no
 es un carrusel genérico, es el paso de **configurar la planilla** (crearla,

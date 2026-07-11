@@ -21,7 +21,9 @@
 <!-- Screen: capture / home -->
 <main id="screen-capture" class="screen active">
   <div class="contenido-centrado">
-    <p class="bienvenida">Esta aplicación está pensada para ahorrarte trabajo: cargar facturas más rápido y más simple. Subís la foto, revisás los datos y se cargan a tu planilla.</p>
+    <p class="saludo">Gracias por probar nuestro servicio.</p>
+    <p class="entrada">Esta aplicación está pensada para ahorrarte trabajo: cargar facturas más rápido y más simple. Subís la foto, revisás los datos y se cargan a tu planilla.</p>
+    <p class="feedback">Tu opinión nos importa. Cualquier mejora o cambio que se te ocurra, contanos y lo tomamos en cuenta.</p>
 
     <label class="zona" id="zona" for="input-archivos">
       <p><strong>Arrastrá los archivos acá</strong></p>
@@ -31,6 +33,8 @@
     </label>
 
     <p id="cargando" class="status-msg hidden">Extrayendo los datos de tu factura, puede tardar unos segundos…</p>
+
+    <p id="tip-rotativo" class="tip-rotativo hidden"></p>
 
     <section class="invoice-section">
       <h2 class="section-title">Últimas facturas</h2>
@@ -50,6 +54,7 @@
 <script>
   window.__STRINGS__ = {{ strings | tojson }};
   window.__CAMPOS__ = {{ campos_json | safe }};
+  window.__TIPS__ = {{ tips_json | safe }};
 </script>
 <script src="{{ url_for('static', filename='js/app.js') }}?v={{ asset_version('js/app.js') }}"></script>
 <script>

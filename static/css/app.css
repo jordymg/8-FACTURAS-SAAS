@@ -127,12 +127,47 @@ body {
    tiene efecto (el viewport ya es más angosto que el max-width). */
 .contenido-centrado { max-width: 760px; margin: 0 auto; }
 
-.bienvenida {
+/* Jerarquía tipográfica de la home (ADR-0004 área App): título del header
+   > .entrada > .saludo y .feedback (mismo tamaño chico entre sí). */
+.saludo {
+  color: var(--gray-900);
+  font-weight: 500;
+  font-size: 1rem;
+  text-align: center;
+  margin-bottom: .3rem;
+}
+
+.entrada {
+  color: var(--gray-900);
+  font-weight: 500;
+  font-size: 1rem;
+  line-height: 1.5;
+  text-align: center;
+  margin-bottom: .5rem;
+}
+
+.feedback {
   color: var(--gray-500);
   font-size: .88rem;
   line-height: 1.5;
+  text-align: center;
   margin-bottom: 1rem;
 }
+
+/* Tip rotativo (ADR-0004 área App) — debajo de la dropzone, arriba de
+   "Últimas facturas". Fade suave al cambiar de tip. */
+.tip-rotativo {
+  color: var(--gray-500);
+  font-size: .82rem;
+  line-height: 1.4;
+  margin: .75rem 0;
+  min-height: 1.2em;
+  opacity: 1;
+  transition: opacity .3s ease;
+}
+.tip-rotativo.hidden,
+.tip-rotativo.tip-oculto { opacity: 0; }
+.tip-rotativo.hidden { display: none; }
 
 /* ── Capture screen ───────────────────────────────────── */
 .capture-area {
@@ -281,7 +316,7 @@ body {
 /* ── Dropzone (captura) ───────────────────────────────── */
 .zona {
   display: block;
-  border: 2px dashed var(--gray-200);
+  border: 2px dashed var(--gray-500);
   border-radius: var(--radius);
   background: #fff;
   padding: 1.75rem 1rem;
