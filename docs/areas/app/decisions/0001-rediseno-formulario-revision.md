@@ -1,8 +1,9 @@
 # ADR-0001 (app): Rediseño del formulario de revisión
 
 **Date:** 2026-07-07
-**Status:** ADOPTADA — implementación en código hecha (2026-07-07), **no
-confirmada funcionando** — ver nota de 2026-07-08 en Consecuencias.
+**Status:** ADOPTADA e IMPLEMENTADA — confirmada funcionando por el founder
+en navegador el 2026-07-11 (ver nota de 2026-07-08 en Consecuencias para el
+diagnóstico previo del problema de caché).
 
 ## Contexto
 El formulario de revisión pasó a ~20 campos por tarjeta con la estructura

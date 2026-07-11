@@ -9,20 +9,29 @@ automático sin botón manual). Implementado en código desde el 2026-07-07.
 **ADR-0002** — rediseño de la pantalla de inicio (sesión de diseño CEO+CPO,
 2026-07-11): auto-procesamiento también en la pantalla de inicio (aplica el
 mismo mecanismo de ADR-0001), texto de bienvenida sobre la dropzone,
-contenido con ancho máximo en desktop, botón "Ver planilla de Facturas" en
-un header de 3 zonas. Implementado en código el mismo día. De paso se
-agregó **cache-busting a `app.css`/`app.js`** (query param con el mtime del
-archivo) — resuelve de raíz el problema de la sesión anterior (cambios de
-código que no se veían reflejados en el navegador).
+contenido con ancho máximo en desktop. Implementado el mismo día. De paso
+se agregó **cache-busting a `app.css`/`app.js`** (query param con el mtime
+del archivo) — resuelve de raíz el problema de la sesión anterior (cambios
+de código que no se veían reflejados en el navegador).
 
-**Ambos ADRs (0001 y 0002) están implementados en código pero NO
-confirmados funcionando en navegador todavía** — se verificaron por render
-de servidor (`test_client`) y chequeos estáticos (grep, sintaxis, boot),
-pero no hay herramienta de navegador en este entorno para confirmar
-visualmente, y la sesión se cerró antes de que el founder llegara a probar
-el rediseño de la pantalla de inicio en su navegador. **Primer paso de la
-próxima sesión: abrir `http://localhost:5000` y confirmar los 5 criterios
-de aceptación de `decisions/0002-rediseno-pantalla-inicio.md`.**
+**ADR-0003 — corrige la Decisión 4 del ADR-0002** (mismo día, misma sesión
+de diseño): el botón genérico "Ver planilla de Facturas" se reemplaza por
+el **nombre real de la planilla conectada como link** (o "Conectá tu
+planilla" sin conexión), más el **email de la cuenta logueada** — visible
+siempre, sin acción de click. Header pasa a 4 zonas (título / nombre de
+planilla / email / Configuración+Salir), 3 filas en mobile, 1 fila en
+desktop. Requirió agregar `User.spreadsheet_title` — sin Alembic en el
+proyecto, se agregó una auto-migración liviana al arrancar la app (ver
+`app/__init__.py::_ensure_schema`) que sólo agrega la columna si falta,
+sin destruir datos. **Probado de punta a punta contra la planilla de
+referencia real** (no un mock): reconectar guardó el título real
+("Facturas Proveedores - bot") y el header lo mostró correctamente.
+
+**Los 3 ADRs (0001, 0002, 0003) están implementados y CONFIRMADOS
+funcionando** — el founder probó todo en navegador el 2026-07-11 (formulario
+con campos ocultos/grilla 2 columnas, pantalla de inicio con
+auto-procesamiento/bienvenida/ancho centrado, header con nombre de planilla
++ email) y reportó que anda bien. Listo para commitear.
 
 Además, `docs/decisions/0009-comunicacion-nunca-mencionar-ia.md` (repo
 general, transversal): ningún texto visible menciona IA/Gemini — auditoría
@@ -45,12 +54,8 @@ reflejar cuando se implementen:
   (área planillas) — **ya implementado y confirmado en producción**.
 
 ## Next
-1. **Confirmar visualmente ADR-0001 + ADR-0002 en el navegador**
-   (`http://localhost:5000`, con `localhost` no `127.0.0.1` por el tema de
-   OAuth ya resuelto). Con el cache-busting nuevo no debería hacer falta
-   recarga forzada — si el problema de "no veo cambios" de la sesión
-   anterior persiste, ahí sí hay un bug real que diagnosticar, no caché.
-   Recién después de confirmar: commitear y probar en el celular.
+1. Probar el rediseño completo en el celular (mobile real, no solo
+   navegador desktop) — pendiente en `docs/STATUS.md` general.
 2. **Prioridad alta pre-lanzamiento**: implementar la pantalla de espera
    (ADR-0005 repo general) con el enmascaramiento de reintentos de Gemini.
 3. Diseñar el onboarding de configuración de planilla (ver `PRODUCTO.md`) —

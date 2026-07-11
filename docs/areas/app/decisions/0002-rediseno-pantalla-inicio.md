@@ -1,10 +1,15 @@
 # ADR-0002 (app): Rediseño de la pantalla de inicio (/app)
 
 **Date:** 2026-07-11
-**Status:** ADOPTADA — origen: sesión de diseño CEO (Jordi) + CPO (Claude), APROBADO por CEO.
-Implementado en código el mismo día, verificado por render de servidor
-(`test_client`, ver Consecuencias) — **pendiente de confirmación visual del
-founder en navegador**, la sesión se cerró antes de esa prueba.
+**Status:** ADOPTADA e IMPLEMENTADA — origen: sesión de diseño CEO (Jordi) +
+CPO (Claude), APROBADO por CEO. Confirmada funcionando por el founder en
+navegador el 2026-07-11.
+
+⚠️ **La Decisión 4 (botón "Ver planilla de Facturas" en el header) fue
+corregida por [ADR-0003](0003-header-nombre-planilla-y-email.md)** —
+reemplazada por el nombre real de la planilla como link, más el email del
+usuario. El resto de este ADR (auto-procesamiento, texto de bienvenida,
+ancho máximo del contenido) sigue vigente sin cambios.
 
 ## Contexto
 Sesión de diseño dedicada sobre la pantalla de inicio de la app
@@ -47,7 +52,7 @@ El header (`.app-header`) queda fuera de este contenedor — sigue siendo una
 barra completa de borde a borde, como es convención para una barra
 superior sticky.
 
-### 4. Botón "Ver planilla de Facturas" en el header
+### 4. Botón "Ver planilla de Facturas" en el header — ⚠️ corregido por ADR-0003
 Texto exacto del botón: **"Ver planilla de Facturas"**. Header pasa de 2
 zonas (título izquierda, controles derecha) a 3 zonas
 (izquierda/centro/derecha):

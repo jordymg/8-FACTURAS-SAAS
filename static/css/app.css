@@ -49,16 +49,69 @@ body {
 }
 
 /* ── App header ───────────────────────────────────────── */
+/* 4 zonas (ADR-0003 área App, corrige la Decisión 4 del ADR-0002): mobile
+   apila en 3 filas (título+controles / nombre de planilla / email); desktop
+   las junta en una sola fila. */
 .app-header {
   position: sticky;
   top: 0;
   z-index: 10;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "left right" "center center" "email email";
   align-items: center;
-  justify-content: space-between;
+  gap: .25rem 1rem;
   padding: .75rem 1rem;
   background: #fff;
   border-bottom: 1px solid var(--gray-200);
+}
+@media (min-width: 700px) {
+  .app-header {
+    grid-template-columns: 1fr auto auto 1fr;
+    grid-template-areas: "left center email right";
+  }
+}
+
+.header-left { grid-area: left; }
+.header-right { grid-area: right; justify-self: end; }
+
+/* Nombre de la planilla (o "Conectá tu planilla" sin conectar) — trunca
+   con ellipsis, nunca rompe el layout del header. Límite más agresivo en
+   mobile que en desktop. */
+.header-center {
+  grid-area: center;
+  justify-self: center;
+  display: block;
+  min-width: 0;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--blue);
+  font-weight: 500;
+  font-size: .85rem;
+  text-decoration: none;
+}
+.header-center:hover { text-decoration: underline; }
+@media (min-width: 700px) {
+  .header-center { max-width: 320px; }
+}
+
+/* Email de la cuenta logueada — texto discreto, sin acción de click. */
+.header-email {
+  grid-area: email;
+  justify-self: center;
+  display: block;
+  min-width: 0;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--gray-500);
+  font-size: .76rem;
+}
+@media (min-width: 700px) {
+  .header-email { justify-self: start; max-width: 200px; }
 }
 
 .app-title {
@@ -69,6 +122,17 @@ body {
 /* ── Screens ──────────────────────────────────────────── */
 .screen { display: none; padding: 1rem; }
 .screen.active { display: block; }
+
+/* Ancho máximo del contenido en desktop (ADR-0002 área App) — en mobile no
+   tiene efecto (el viewport ya es más angosto que el max-width). */
+.contenido-centrado { max-width: 760px; margin: 0 auto; }
+
+.bienvenida {
+  color: var(--gray-500);
+  font-size: .88rem;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
 
 /* ── Capture screen ───────────────────────────────────── */
 .capture-area {
@@ -228,20 +292,9 @@ body {
 .zona.arrastrando { border-color: var(--blue); background: #eef4ff; }
 .zona p { margin: .15rem 0; color: var(--gray-500); font-size: .9rem; }
 .zona-formatos { color: #bbb; font-size: .78rem; margin-top: .4rem; }
-
-.lista-archivos { list-style: none; margin: .75rem 0; padding: 0; }
-.lista-archivos li {
-  background: #fff;
-  border: 1px solid var(--gray-200);
-  border-radius: 8px;
-  padding: .45rem .75rem;
-  margin-bottom: .35rem;
-  font-size: .88rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.lista-archivos li button { border: none; background: none; color: var(--red); cursor: pointer; font-size: .95rem; }
+/* Mientras se procesa una tanda (ADR-0001 área App, punto c: sin botón
+   manual) no se puede soltar/elegir otra tanda hasta que termine. */
+.zona.procesando { opacity: .6; pointer-events: none; }
 
 /* ── Cards de revisión ────────────────────────────────── */
 .card {
@@ -279,8 +332,35 @@ body {
 .card-body { padding: .8rem 1rem; }
 .card-footer { padding: .4rem 1rem .8rem; }
 
-.campos-grid { display: grid; grid-template-columns: 80px 1fr; gap: .5rem .7rem; align-items: center; }
+/* Grilla externa: 1 columna en celular, 2 en desktop (ADR-0001 área App,
+   punto b). Cada .campo-item es un par label+control autocontenido. */
+.campos-grid { display: grid; grid-template-columns: 1fr; gap: .5rem 1.5rem; }
+@media (min-width: 700px) {
+  .campos-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.campo-item { display: grid; grid-template-columns: 80px 1fr; gap: .5rem .7rem; align-items: center; }
 .campo-label { font-size: .81rem; color: var(--gray-500); text-align: right; }
+
+/* Campos poco frecuentes ocultos por defecto si vinieron vacíos (ADR-0001
+   área App, punto a) — el botón "Mostrar campos ocultos" los despliega. */
+.campo-item.campo-oculto { display: none; }
+.campos-grid.mostrar-ocultos .campo-item.campo-oculto { display: grid; }
+
+.btn-mostrar-ocultos {
+  display: block;
+  width: 100%;
+  margin-top: .6rem;
+  padding: .4rem;
+  border: none;
+  background: none;
+  color: var(--blue);
+  font-size: .82rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+}
+.btn-mostrar-ocultos:hover { text-decoration: underline; }
 
 .campo-ctrl {
   width: 100%;

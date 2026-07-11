@@ -112,14 +112,17 @@ def _real_row_count(sheet: gspread.Worksheet) -> int:
     return len([r for r in sheet.get_all_values() if any(cell.strip() for cell in r)])
 
 
-def connect_spreadsheet(text: str) -> str:
+def connect_spreadsheet(text: str) -> tuple[str, str]:
     """Valida que la SA puede abrir la planilla del usuario y le escribe el
-    encabezado si está vacía. Devuelve el spreadsheet_id."""
+    encabezado si está vacía. Devuelve (spreadsheet_id, título) — el título
+    se lee acá una sola vez, no se relee en cada visita (ADR-0003 área App)."""
     spreadsheet_id = extract_spreadsheet_id(text)
     if not spreadsheet_id:
         raise ValueError("ID de planilla inválido.")
     try:
-        sheet = _client().open_by_key(spreadsheet_id).sheet1
+        spreadsheet = _client().open_by_key(spreadsheet_id)
+        sheet = spreadsheet.sheet1
+        titulo = spreadsheet.title
     except gspread.exceptions.APIError as e:
         if e.response.status_code == 403:
             raise SheetAccessError(
@@ -153,7 +156,7 @@ def connect_spreadsheet(text: str) -> str:
     sheet.freeze(rows=1)
     _apply_column_widths(sheet)
 
-    return spreadsheet_id
+    return spreadsheet_id, titulo
 
 
 def _protect_header_once(sheet: gspread.Worksheet, last_col: str) -> None:

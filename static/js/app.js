@@ -2,13 +2,14 @@
   "use strict";
 
   const CAMPOS = window.__CAMPOS__ || [];
-
-  let archivos = [];
+  // Campos que se muestran siempre aunque vengan vacíos, además de los
+  // `required` (fecha, proveedor, total, moneda) — a diferencia de esos,
+  // estos NO bloquean el guardado si quedan vacíos (ej. Factura B/C
+  // legítimamente no discrimina neto/IVA). Ver ADR-0001 área App.
+  const SIEMPRE_VISIBLES = ["neto", "iva_21"];
 
   const zona = document.getElementById("zona");
   const inputArchivos = document.getElementById("input-archivos");
-  const listaEl = document.getElementById("lista-archivos");
-  const btnProcesar = document.getElementById("btn-procesar");
   const cargandoEl = document.getElementById("cargando");
   const cardsEl = document.getElementById("cards");
   const btnVolver = document.getElementById("btn-volver");
@@ -28,33 +29,19 @@
       .replace(/"/g, "&quot;");
   }
 
-  // ── Selección de archivos ──────────────────────────────
-  function actualizarLista() {
-    listaEl.innerHTML = "";
-    archivos.forEach((f, i) => {
-      const li = document.createElement("li");
-      const span = document.createElement("span");
-      span.textContent = f.name;
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.textContent = "✕";
-      btn.onclick = () => { archivos.splice(i, 1); actualizarLista(); };
-      li.appendChild(span);
-      li.appendChild(btn);
-      listaEl.appendChild(li);
-    });
-    btnProcesar.disabled = archivos.length === 0;
-  }
-
-  function agregarArchivos(nuevos) {
-    for (const f of nuevos) archivos.push(f);
-    actualizarLista();
+  // ── Selección de archivos: se procesan solos, sin botón manual ────────
+  // Ver ADR-0001 área App (c): cada selección o drop es su propia tanda.
+  function bloquearZona(bloqueada) {
+    if (!zona) return;
+    zona.classList.toggle("procesando", bloqueada);
+    inputArchivos.disabled = bloqueada;
   }
 
   if (inputArchivos) {
     inputArchivos.addEventListener("change", () => {
-      agregarArchivos([...inputArchivos.files]);
+      const nuevos = [...inputArchivos.files];
       inputArchivos.value = "";
+      if (nuevos.length) procesar(nuevos);
     });
   }
 
@@ -63,12 +50,15 @@
       zona.addEventListener(ev, (e) => { e.preventDefault(); zona.classList.add("arrastrando"); }));
     ["dragleave", "drop"].forEach((ev) =>
       zona.addEventListener(ev, (e) => { e.preventDefault(); zona.classList.remove("arrastrando"); }));
-    zona.addEventListener("drop", (e) => agregarArchivos([...e.dataTransfer.files]));
+    zona.addEventListener("drop", (e) => {
+      const nuevos = [...e.dataTransfer.files];
+      if (nuevos.length) procesar(nuevos);
+    });
   }
 
   // ── Procesar con IA ────────────────────────────────────
   async function procesar(lista) {
-    btnProcesar.disabled = true;
+    bloquearZona(true);
     cargandoEl.classList.remove("hidden");
     const form = new FormData();
     lista.forEach((f) => form.append("archivos", f));
@@ -79,14 +69,13 @@
       resultados = await resp.json();
     } catch (e) {
       cargandoEl.classList.add("hidden");
-      btnProcesar.disabled = archivos.length === 0;
+      bloquearZona(false);
       alert("Error de red. Revisá tu conexión.");
       return;
     }
 
     cargandoEl.classList.add("hidden");
-    archivos = [];
-    actualizarLista();
+    bloquearZona(false);
     showScreen("screen-review");
     cardsEl.innerHTML = "";
     resultados.forEach((r, i) => {
@@ -94,7 +83,6 @@
     });
   }
 
-  if (btnProcesar) btnProcesar.addEventListener("click", () => procesar(archivos));
   if (btnVolver) btnVolver.addEventListener("click", () => { showScreen("screen-capture"); loadInvoices(); });
 
   // ── Cards ───────────────────────────────────────────────
@@ -136,6 +124,7 @@
     const grid = document.createElement("div");
     grid.className = "campos-grid";
     const inciertos = r.inciertos || [];
+    let hayOcultos = false;
     CAMPOS.forEach((campo) => {
       const lbl = document.createElement("span");
       lbl.className = "campo-label";
@@ -170,10 +159,34 @@
       ctrl.className = (ctrl.className ? ctrl.className + " " : "") + "campo-ctrl";
       ctrl.dataset.clave = campo.key;
       if (campo.required) ctrl.dataset.requerido = "true";
-      grid.appendChild(lbl);
-      grid.appendChild(ctrl);
+
+      // Campos ocultos por defecto (ADR-0001 área App, punto a): los
+      // `required` y los de SIEMPRE_VISIBLES se muestran siempre; el resto
+      // solo si la extracción trajo un valor — así nunca se pierde un dato
+      // que la IA sí detectó, pero no se satura la tarjeta con campos vacíos.
+      const siempreVisible = campo.required || SIEMPRE_VISIBLES.includes(campo.key);
+      const item = document.createElement("div");
+      item.className = "campo-item";
+      if (!siempreVisible && !val) {
+        item.classList.add("campo-oculto");
+        hayOcultos = true;
+      }
+      item.appendChild(lbl);
+      item.appendChild(ctrl);
+      grid.appendChild(item);
     });
     body.appendChild(grid);
+    if (hayOcultos) {
+      const btnOcultos = document.createElement("button");
+      btnOcultos.type = "button";
+      btnOcultos.className = "btn-mostrar-ocultos";
+      btnOcultos.textContent = "Mostrar campos ocultos";
+      btnOcultos.onclick = () => {
+        const mostrando = grid.classList.toggle("mostrar-ocultos");
+        btnOcultos.textContent = mostrando ? "Ocultar campos vacíos" : "Mostrar campos ocultos";
+      };
+      body.appendChild(btnOcultos);
+    }
     card.appendChild(body);
 
     const footer = document.createElement("div");
@@ -212,7 +225,7 @@
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "btn-reintentar-ia";
-    btn.textContent = "Reintentar con IA";
+    btn.textContent = "Reintentar";
     btn.onclick = async () => {
       btn.disabled = true;
       btn.textContent = "Procesando…";
@@ -225,7 +238,7 @@
         card.replaceWith(resultado.ok ? crearCardOk(resultado, archivo) : crearCardError(resultado, archivo));
       } catch (e) {
         btn.disabled = false;
-        btn.textContent = "Reintentar con IA";
+        btn.textContent = "Reintentar";
         msg.textContent = "Error de red.";
       }
     };

@@ -8,15 +8,10 @@ sin landing y sin dominio propio — venta persona a persona a conocidos, demo
 presencial, cobro manual. Checklist real de "antes de vender" en
 `docs/ROADMAP.md`.
 
-**Arrancar la próxima sesión por acá**: ADR-0001 (rediseño del formulario)
-y ADR-0002 (rediseño de la pantalla de inicio, sesión de diseño CEO+CPO del
-2026-07-11) están implementados en código (sin commitear) pero **ninguno
-de los dos está confirmado funcionando en navegador todavía** — la sesión
-anterior el founder no vio cambios (causa sin diagnosticar, hipótesis
-caché), y esta sesión se agregó un fix de cache-busting a los assets
-estáticos que debería resolverlo, pero se cerró antes de volver a probar.
-Ver `docs/areas/app/STATUS.md` y los ADRs 0001/0002 en
-`docs/areas/app/decisions/`.
+ADR-0001, ADR-0002 y ADR-0003 (rediseño de formulario, pantalla de inicio,
+y header con nombre de planilla + email — los tres del área App) **ya
+confirmados funcionando por el founder en navegador (2026-07-11)**. Ver
+`docs/areas/app/STATUS.md` y los ADRs en `docs/areas/app/decisions/`.
 
 De paso, esta sesión también se documentó y aplicó
 `docs/decisions/0009-comunicacion-nunca-mencionar-ia.md` (repo general,
@@ -161,11 +156,11 @@ auditoría hecha, 3 textos corregidos.
    Qué se necesita: implementar el aviso en la UI y definir el reset
    mensual del contador (no diseñado todavía).
 
-5. **Rediseño del formulario de revisión** (ADR-0001 área App): ocultar
-   campos poco frecuentes salvo que tengan valor, grilla responsiva en
-   desktop, procesamiento automático sin botón manual.
+5. **Probar en el celular** el rediseño del formulario y de la pantalla de
+   inicio (ADR-0001, ADR-0002, ADR-0003 área App) — ya confirmado
+   funcionando en navegador desktop, falta mobile real.
    Dónde: `templates/app.html`, `static/js/app.js`, `static/css/app.css`.
-   Qué se necesita: implementar — probarlo en el celular junto con esto.
+   Qué se necesita: probarlo en un celular real y ajustar si algo se ve mal.
 
 ## Deuda técnica / discusiones abiertas (no bloquean vender)
 - Armar el set de casos de prueba del prompt (ADR-0007/0008 área Planillas)
@@ -260,6 +255,11 @@ auditoría hecha, 3 textos corregidos.
   emails).
 - 2026-07-11: ADR-0002 (área App) — rediseño de la pantalla de inicio,
   sesión de diseño CEO+CPO: auto-procesamiento también ahí, texto de
-  bienvenida sobre la dropzone, ancho máximo del contenido en desktop,
-  botón "Ver planilla de Facturas" en header de 3 zonas. Implementado en
-  código, no confirmado en navegador todavía.
+  bienvenida sobre la dropzone, ancho máximo del contenido en desktop.
+  Confirmado funcionando en navegador el mismo día.
+- 2026-07-11: ADR-0003 (área App) — corrige la Decisión 4 del ADR-0002: el
+  centro del header muestra el nombre real de la planilla conectada (link,
+  leído una vez al conectar, no en cada visita) o "Conectá tu planilla" sin
+  conexión, más el email de la cuenta logueada. Nuevo campo
+  `User.spreadsheet_title` con auto-migración liviana (sin Alembic).
+  Confirmado funcionando en navegador el mismo día.

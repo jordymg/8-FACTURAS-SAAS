@@ -3,8 +3,14 @@
 {% block body %}
 
 <header class="app-header">
-  <span class="app-title">Facturas</span>
-  <div style="display:flex;align-items:center;gap:1rem">
+  <span class="app-title header-left">Facturas</span>
+  {% if user.spreadsheet_id %}
+    <a href="https://docs.google.com/spreadsheets/d/{{ user.spreadsheet_id }}" target="_blank" rel="noopener" class="header-center" title="{{ user.spreadsheet_title or 'Ver planilla de Facturas' }}">{{ user.spreadsheet_title or "Ver planilla de Facturas" }}</a>
+  {% else %}
+    <a href="{{ url_for('web.config_view') }}" class="header-center">Conectá tu planilla</a>
+  {% endif %}
+  <span class="header-email" title="{{ user.email }}">{{ user.email }}</span>
+  <div class="header-right" style="display:flex;align-items:center;gap:1rem">
     <a href="{{ url_for('web.config_view') }}" class="btn-ghost" style="text-decoration:none;font-size:.85rem;padding:.4rem .75rem">Configuración</a>
     <form action="{{ url_for('auth.logout') }}" method="post" style="display:inline">
       <button type="submit" class="btn-ghost">Salir</button>
@@ -14,23 +20,25 @@
 
 <!-- Screen: capture / home -->
 <main id="screen-capture" class="screen active">
-  <label class="zona" id="zona" for="input-archivos">
-    <p><strong>Arrastrá los archivos acá</strong></p>
-    <p>o hacé click para elegirlos (o sacar una foto)</p>
-    <p class="zona-formatos">JPG · PNG · WEBP · PDF</p>
-    <input type="file" id="input-archivos" multiple accept="image/jpeg,image/png,image/webp,application/pdf" hidden>
-  </label>
+  <div class="contenido-centrado">
+    <p class="bienvenida">Esta aplicación está pensada para ahorrarte trabajo: cargar facturas más rápido y más simple. Subís la foto, revisás los datos y se cargan a tu planilla.</p>
 
-  <ul id="lista-archivos" class="lista-archivos"></ul>
-  <button class="btn btn-primary" id="btn-procesar" style="width:100%;margin-top:.6rem" disabled>Procesar con IA</button>
-  <p id="cargando" class="status-msg hidden">Extrayendo datos con IA, puede tardar unos segundos…</p>
+    <label class="zona" id="zona" for="input-archivos">
+      <p><strong>Arrastrá los archivos acá</strong></p>
+      <p>o hacé click para elegirlos (o sacar una foto)</p>
+      <p class="zona-formatos">JPG · PNG · WEBP · PDF</p>
+      <input type="file" id="input-archivos" multiple accept="image/jpeg,image/png,image/webp,application/pdf" hidden>
+    </label>
 
-  <section class="invoice-section">
-    <h2 class="section-title">Últimas facturas</h2>
-    <div id="invoice-list" class="invoice-list">
-      <p class="list-placeholder">Cargando…</p>
-    </div>
-  </section>
+    <p id="cargando" class="status-msg hidden">Extrayendo los datos de tu factura, puede tardar unos segundos…</p>
+
+    <section class="invoice-section">
+      <h2 class="section-title">Últimas facturas</h2>
+      <div id="invoice-list" class="invoice-list">
+        <p class="list-placeholder">Cargando…</p>
+      </div>
+    </section>
+  </div>
 </main>
 
 <!-- Screen: review / edit (una card por comprobante) -->
@@ -43,7 +51,7 @@
   window.__STRINGS__ = {{ strings | tojson }};
   window.__CAMPOS__ = {{ campos_json | safe }};
 </script>
-<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}?v={{ asset_version('js/app.js') }}"></script>
 <script>
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/static/sw.js");

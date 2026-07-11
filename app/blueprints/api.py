@@ -25,11 +25,12 @@ def connect_sheet():
 
     data = request.get_json(force=True)
     try:
-        spreadsheet_id = sheets.connect_spreadsheet(data.get("planilla", ""))
+        spreadsheet_id, titulo = sheets.connect_spreadsheet(data.get("planilla", ""))
     except (sheets.SheetAccessError, ValueError) as e:
         return jsonify({"ok": False, "error": str(e)})
 
     user.spreadsheet_id = spreadsheet_id
+    user.spreadsheet_title = titulo
     db.session.commit()
     return jsonify({"ok": True})
 
@@ -41,7 +42,7 @@ def extract():
         return jsonify({"error": "unauthorized"}), 401
 
     if "GEMINI_API_KEY" not in os.environ:
-        return jsonify({"error": "Gemini no está configurado (falta GEMINI_API_KEY)."}), 500
+        return jsonify({"error": "Nuestro sistema no está disponible en este momento. Probá de nuevo en unos minutos."}), 500
 
     files = request.files.getlist("archivos") or request.files.getlist("image")
     if not files:
