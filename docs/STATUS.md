@@ -25,7 +25,16 @@ presencial, cobro manual. Checklist real de "antes de vender" en
 **Nuevo documento**: `docs/FEATURES.md` — catálogo vivo e interno de
 features del producto (ADR-0011 repo general). Primera entrada: la carga
 de facturas por foto (todo lo online hoy). Segunda: "Reportes al
-contador", registrada como idea sin especificar todavía.
+contador", registrada como idea sin especificar todavía. Mantenedor:
+**Claude 1 (CPO)**, con aprobación del CEO para toda entrada y cambio.
+
+**Modelo de nombres y roles formalizado** (`docs/ORGANIGRAMA.md`): los
+integrantes IA de la empresa tienen nombre propio separado del rol que
+ocupan — el Claude que hoy es CPO se llama **"Claude 1"**. Roles futuros
+pueden ocuparlos Claudes nuevos ("Claude 2", etc.), cada uno su propio
+espacio de trabajo. `README.md` también referencia esto en "Cómo
+trabajamos" y en la tabla de documentación (fila nueva para
+`docs/FEATURES.md`).
 
 ADR-0001, ADR-0002, ADR-0003 y ADR-0004 (rediseño de formulario, pantalla
 de inicio, header con nombre de planilla + email, y tips/textos de
@@ -380,4 +389,12 @@ auditoría hecha, 3 textos corregidos.
   ADRs, precio posible, costo, plan, origen, fechas, dependencias,
   métrica de éxito) más explicación llana y detalle técnico. Primera
   entrada: carga de facturas por foto (online). Segunda: "Reportes al
-  contador" (idea, sin especificar).
+  contador" (idea, sin especificar). Mantenedor: Claude 1 (CPO), con
+  aprobación del CEO.
+- 2026-07-12: modelo de nombres y roles formalizado en
+  `docs/ORGANIGRAMA.md` — los integrantes IA tienen nombre propio
+  separado del rol (el Claude que ocupa el cargo de CPO se llama "Claude
+  1"). Roles futuros pueden ocuparlos Claudes nuevos ("Claude 2", etc.),
+  cada uno su propio espacio de trabajo/contexto. `README.md` actualizado
+  con la misma referencia y una fila nueva para `docs/FEATURES.md` en la
+  tabla de documentación.

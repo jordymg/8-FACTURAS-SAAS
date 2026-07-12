@@ -102,7 +102,10 @@ decidido. Las reglas:
 
 1. **Los docs son la memoria.** Toda sesión de trabajo (humana o IA) arranca
    leyendo `/docs` y termina actualizando `docs/STATUS.md`. El protocolo
-   completo está en [`docs/WORKFLOW.md`](docs/WORKFLOW.md).
+   completo está en [`docs/WORKFLOW.md`](docs/WORKFLOW.md). Los
+   integrantes IA tienen nombre propio separado de su rol (ej. **Claude
+   1** ocupa el cargo de CPO) — ver
+   [`docs/ORGANIGRAMA.md`](docs/ORGANIGRAMA.md).
 2. **Toda decisión significativa es un ADR.** Nada queda "decidido en una
    conversación": se escribe en `docs/decisions/` (o en el `decisions/` del
    área que corresponda) con Contexto / Decisión / Alternativas /
@@ -127,6 +130,7 @@ decidido. Las reglas:
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Cómo: stack, data model, API |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Fases y tareas |
 | [`docs/STATUS.md`](docs/STATUS.md) | Estado vivo del proyecto |
+| [`docs/FEATURES.md`](docs/FEATURES.md) | Catálogo vivo de features — vigentes, en diseño e ideas; base de pitches y marketing (interno) |
 | [`docs/WORKFLOW.md`](docs/WORKFLOW.md) | Protocolo multi-IA y handoffs |
 | [`docs/ISSUES.md`](docs/ISSUES.md) | Log de problemas que tocaron datos reales o sorprendieron |
 | [`docs/decisions/`](docs/decisions/) | ADRs generales (stack, storage, pricing, Service Account) |

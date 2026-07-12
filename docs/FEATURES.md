@@ -21,6 +21,8 @@ acá salen los pitches de venta y la estrategia de marketing.
   este catálogo las referencia, no las reemplaza.
 - La ficha de tags puede simplificarse en el futuro si algún campo resulta
   no usarse.
+- **Mantenedor: Claude 1 (CPO)** — toda entrada y cambio con aprobación
+  del CEO. Ver `docs/ORGANIGRAMA.md`.
 
 ## Ficha de cada entrada (plantilla)
 Cada feature se documenta con:

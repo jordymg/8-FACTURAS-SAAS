@@ -29,6 +29,9 @@ estrategia de marketing se deriven de un documento fuente.
 - Las features nuevas pueden entrar como **idea casi vacía** — se
   especifican con el tiempo. Primera idea registrada así: "Reportes al
   contador".
+- **Dueño y mantenedor del catálogo: Claude 1 (CPO)** — toda entrada y
+  cambio requiere aprobación del CEO, igual que los ADRs. Ver el modelo
+  de nombres y roles en `docs/ORGANIGRAMA.md`.
 
 ## Alternativas consideradas
 - Ubicarlo en docs/areas/: descartado — las áreas son por producto
@@ -47,3 +50,7 @@ estrategia de marketing se deriven de un documento fuente.
 - La feature "Reportes al contador" queda registrada como idea; su
   diseño (contenido del reporte, dónde vive, cuándo se genera) se
   discute en el área Planillas antes de implementar nada.
+- Queda anotado que el rol comercial/marketing es el candidato a nacer
+  (como un Claude nuevo, según el modelo nombre/rol del organigrama)
+  cuando armar pitches y marketing pase de derivado ocasional a trabajo
+  con volumen propio — ese rol consumiría el catálogo, no lo mantendría.
