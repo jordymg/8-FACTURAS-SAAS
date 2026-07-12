@@ -22,6 +22,11 @@ sin landing y sin dominio propio — venta persona a persona a conocidos, demo
 presencial, cobro manual. Checklist real de "antes de vender" en
 `docs/ROADMAP.md`.
 
+**Nuevo documento**: `docs/FEATURES.md` — catálogo vivo e interno de
+features del producto (ADR-0011 repo general). Primera entrada: la carga
+de facturas por foto (todo lo online hoy). Segunda: "Reportes al
+contador", registrada como idea sin especificar todavía.
+
 ADR-0001, ADR-0002, ADR-0003 y ADR-0004 (rediseño de formulario, pantalla
 de inicio, header con nombre de planilla + email, y tips/textos de
 bienvenida — los cuatro del área App) **ya confirmados funcionando por el
@@ -368,3 +373,11 @@ auditoría hecha, 3 textos corregidos.
   como problema — quedó resuelto y probado contra la API real de Sheets.
   Los datos ya cargados en "Hoja 1" quedan intactos pero sin uso, sin
   migración (confirmado que no hace falta en etapa de desarrollo).
+- 2026-07-12: ADR-0011 (repo general) — se crea `docs/FEATURES.md`,
+  catálogo vivo e interno de features del producto (no lo lee el
+  cliente), del que se derivan pitches de venta y estrategia de
+  marketing. Cada feature tiene una ficha de tags (online, estado, área,
+  ADRs, precio posible, costo, plan, origen, fechas, dependencias,
+  métrica de éxito) más explicación llana y detalle técnico. Primera
+  entrada: carga de facturas por foto (online). Segunda: "Reportes al
+  contador" (idea, sin especificar).
