@@ -132,6 +132,19 @@ def connect_spreadsheet(text: str) -> tuple[str, str]:
     except Exception as e:
         raise SheetAccessError(f"No se pudo abrir la planilla: {e}") from e
 
+    _formatear_encabezado(sheet)
+
+    return spreadsheet_id, titulo
+
+
+def _formatear_encabezado(sheet: gspread.Worksheet) -> None:
+    """Escribe el encabezado canónico + aplica todas las reglas de formato
+    e integridad (protección, fecha, moneda, fila congelada, anchos de
+    columna) sobre `sheet1` en `connect_spreadsheet()`. Las pestañas
+    anuales nuevas (`crear_pestanas()`, ADR-0003 área Planillas) aplican
+    el mismo formato pero con sus propios requests en lote, para poder
+    mandar todo junto en un único `batch_update` — ver el docstring de
+    `crear_pestanas()` para el porqué."""
     last_col = _last_col_letter(len(ROW_KEYS))
 
     # El encabezado se (re)escribe siempre con nuestros textos canónicos, aun
@@ -156,7 +169,124 @@ def connect_spreadsheet(text: str) -> tuple[str, str]:
     sheet.freeze(rows=1)
     _apply_column_widths(sheet)
 
-    return spreadsheet_id, titulo
+
+def rename_spreadsheet(spreadsheet_id: str, titulo_actual: str, titulo_nuevo: str) -> str:
+    """Le pone un nombre a la planilla en Google Drive (ADR-0005 área App)
+    — se usa solo en la primera conexión de cada usuario, nunca en
+    reconexiones (para no pisarle un nombre que ya haya elegido a mano).
+    Si falla, no rompe el flujo de conexión — devuelve `titulo_actual` sin
+    cambiar, la planilla igual queda conectada y utilizable."""
+    try:
+        spreadsheet = _client().open_by_key(spreadsheet_id)
+        spreadsheet.update_title(titulo_nuevo)
+        return titulo_nuevo
+    except Exception:
+        return titulo_actual
+
+
+def asegurar_pestana_del_anio(spreadsheet_id: str, fecha: datetime.date) -> str:
+    """Crea la pestaña del año calendario de `fecha` si todavía no existe
+    (ADR-0003 área Planillas, versión 2026-07-12: una sola pestaña por
+    AÑO, no por mes — ej. toda la factura de 2026 vive en una pestaña
+    llamada "2026"). Se llama:
+    - Al conectar por primera vez (crea la pestaña del año actual).
+    - Cada vez que se guarda una factura (`POST /api/invoices`), como
+      chequeo barato — si ya cambiamos de año y todavía no existe esa
+      pestaña, se crea ahí mismo.
+    Devuelve el nombre de la pestaña (exista ya, o se acabe de crear)."""
+    nombre = str(fecha.year)
+    crear_pestanas(spreadsheet_id, [nombre])
+    return nombre
+
+
+def crear_pestanas(spreadsheet_id: str, nombres: list[str]) -> list[str]:
+    """Crea (si no existen ya) las pestañas pedidas (hoy siempre una por
+    año, ej. "2026"), con el encabezado y formato canónico (ADR-0003 área
+    Planillas — alcance acotado: solo crea las pestañas,
+    `append_invoice`/`list_invoices`/`find_duplicate` siguen usando
+    `sheet1` únicamente, no leen/escriben estas pestañas todavía).
+    Devuelve `nombres` tal cual (ya existieran o se acaben de crear) — no
+    hace nada si ya están todas.
+
+    IMPORTANTE — por qué va todo en 2 llamadas a la API, no N×7: crear una
+    pestaña con `add_worksheet` + todo su formato (negrita, fecha, moneda,
+    fila congelada, anchos de columna, protección) son ~7 llamadas de
+    escritura. Con las 12 pestañas del año de una sola vez esto superaba
+    la cuota de "escrituras por minuto" de la API de Sheets (HTTP 429,
+    confirmado empíricamente — ver Issue #006 en docs/ISSUES.md). Ahora
+    que se crea de a una pestaña por vez esto ya no es un riesgo real,
+    pero se mantiene el mismo mecanismo en lotes por prolijidad y por si
+    en algún momento se llama con más de una pestaña junta: se arman TODOS
+    los requests en una sola lista y se mandan juntos en un único
+    `spreadsheet.batch_update(...)` — más un segundo llamado con
+    `values_batch_update(...)` para el texto del encabezado."""
+    spreadsheet = _client().open_by_key(spreadsheet_id)
+    existentes = {ws.title: ws.id for ws in spreadsheet.worksheets()}
+    a_crear = [n for n in nombres if n not in existentes]
+    if not a_crear:
+        return nombres
+
+    # sheetId nuevos que no choquen con los que ya existen en la planilla
+    # (se pueden pre-asignar en el request de addSheet, y los requests de
+    # formato del mismo batch ya los pueden referenciar).
+    siguiente_id = max(existentes.values(), default=0) + 1000
+    id_de = {}
+    for nombre in a_crear:
+        id_de[nombre] = siguiente_id
+        siguiente_id += 1
+
+    n_cols = len(ROW_KEYS)
+    fecha_col_idx = ROW_KEYS.index("fecha")
+    money_start_idx = ROW_KEYS.index(_MONEY_KEYS[0])
+    money_end_idx = ROW_KEYS.index(_MONEY_KEYS[-1]) + 1
+
+    requests = []
+    for nombre in a_crear:
+        sid = id_de[nombre]
+        requests.append({"addSheet": {"properties": {
+            "sheetId": sid, "title": nombre,
+            "gridProperties": {"rowCount": 1000, "columnCount": n_cols},
+        }}})
+        requests.append({"repeatCell": {
+            "range": {"sheetId": sid, "startRowIndex": 0, "endRowIndex": 1},
+            "cell": {"userEnteredFormat": {"textFormat": {"bold": True}}},
+            "fields": "userEnteredFormat.textFormat.bold",
+        }})
+        requests.append({"repeatCell": {
+            "range": {"sheetId": sid, "startColumnIndex": fecha_col_idx, "endColumnIndex": fecha_col_idx + 1},
+            "cell": {"userEnteredFormat": {"numberFormat": {"type": "DATE", "pattern": "dd/mm/yyyy"}}},
+            "fields": "userEnteredFormat.numberFormat",
+        }})
+        requests.append({"repeatCell": {
+            "range": {"sheetId": sid, "startColumnIndex": money_start_idx, "endColumnIndex": money_end_idx},
+            "cell": {"userEnteredFormat": {"numberFormat": {"type": "CURRENCY", "pattern": '"$"#,##0.00'}}},
+            "fields": "userEnteredFormat.numberFormat",
+        }})
+        requests.append({"updateSheetProperties": {
+            "properties": {"sheetId": sid, "gridProperties": {"frozenRowCount": 1}},
+            "fields": "gridProperties.frozenRowCount",
+        }})
+        for i, key in enumerate(ROW_KEYS):
+            requests.append({"updateDimensionProperties": {
+                "range": {"sheetId": sid, "dimension": "COLUMNS", "startIndex": i, "endIndex": i + 1},
+                "properties": {"pixelSize": _COLUMN_WIDTHS[key]},
+                "fields": "pixelSize",
+            }})
+        requests.append({"addProtectedRange": {"protectedRange": {
+            "range": {"sheetId": sid, "startRowIndex": 0, "endRowIndex": 1},
+            "description": "Encabezado de la planilla - no editar a mano",
+            "editors": {"users": [sa_email()]},
+        }}})
+
+    spreadsheet.batch_update({"requests": requests})
+
+    last_col = _last_col_letter(n_cols)
+    spreadsheet.values_batch_update({
+        "valueInputOption": "USER_ENTERED",
+        "data": [{"range": f"'{nombre}'!A1:{last_col}1", "values": [ROW_LABELS]} for nombre in a_crear],
+    })
+
+    return nombres
 
 
 def _protect_header_once(sheet: gspread.Worksheet, last_col: str) -> None:
@@ -211,7 +341,15 @@ def _to_number_or_blank(value):
 
 
 def append_invoice(spreadsheet_id: str, row: dict) -> None:
-    sheet = _client().open_by_key(spreadsheet_id).sheet1
+    """Guarda la factura en la pestaña del AÑO al que corresponde su fecha
+    (ADR-0003 área Planillas — ya no se guarda en `sheet1`/"Hoja 1"). Si esa
+    pestaña todavía no existe (ej. factura de un año que recién empieza),
+    se crea acá mismo con el encabezado canónico."""
+    fecha = str(row.get("fecha", ""))
+    anio = int(fecha[:4]) if fecha[:4].isdigit() else datetime.date.today().year
+    asegurar_pestana_del_anio(spreadsheet_id, datetime.date(anio, 1, 1))
+    sheet = _client().open_by_key(spreadsheet_id).worksheet(str(anio))
+
     values = []
     for key in ROW_KEYS:
         val = row.get(key, "")
@@ -277,8 +415,19 @@ def find_duplicate(invoices: list[dict], proveedor: str, numero: str, fecha: str
     return None
 
 
-def list_invoices(spreadsheet_id: str, month: str | None = None) -> list[dict]:
-    sheet = _client().open_by_key(spreadsheet_id).sheet1
+def list_invoices(spreadsheet_id: str, month: str | None = None, anio: int | None = None) -> list[dict]:
+    """Lee las facturas de la pestaña del AÑO pedido (ADR-0003 área
+    Planillas — ya no lee `sheet1`/"Hoja 1"). Por defecto, el año actual —
+    para "Últimas facturas" y detección de duplicados, que en la práctica
+    casi siempre importan del año en curso (limitación conocida: no busca
+    en años anteriores). Si la pestaña de ese año todavía no existe (nunca
+    se guardó ninguna factura ese año), devuelve lista vacía sin error."""
+    anio = anio or datetime.date.today().year
+    spreadsheet = _client().open_by_key(spreadsheet_id)
+    try:
+        sheet = spreadsheet.worksheet(str(anio))
+    except gspread.exceptions.WorksheetNotFound:
+        return []
     rows = sheet.get_all_values(value_render_option="UNFORMATTED_VALUE")
     if len(rows) <= 1:
         return []

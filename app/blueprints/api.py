@@ -30,6 +30,28 @@ def connect_sheet():
     except (sheets.SheetAccessError, ValueError) as e:
         return jsonify({"ok": False, "error": str(e)})
 
+    # El título elegido por el usuario solo se aplica en la primera
+    # conexión — si ya tenía una planilla conectada antes, no le pisamos un
+    # nombre que ya haya elegido a mano (ADR-0005 área App). El año lo
+    # agrega el sistema, el usuario solo escribe el nombre base.
+    es_primera_conexion = not user.spreadsheet_id
+    nombre_elegido = (data.get("titulo") or "").strip()
+    if es_primera_conexion and nombre_elegido:
+        titulo_nuevo = f"{nombre_elegido} {datetime.date.today().year}"
+        titulo = sheets.rename_spreadsheet(spreadsheet_id, titulo, titulo_nuevo)
+
+    # La pestaña del año actual se crea al conectar (ADR-0003 área
+    # Planillas: una sola pestaña por año calendario, ej. "2026" — no una
+    # por mes). Si falla, no corta la conexión: el usuario queda igual
+    # conectado con sheet1 funcionando.
+    if es_primera_conexion:
+        if not user.created_at:
+            user.created_at = datetime.date.today()
+        try:
+            sheets.asegurar_pestana_del_anio(spreadsheet_id, datetime.date.today())
+        except Exception:
+            pass
+
     user.spreadsheet_id = spreadsheet_id
     user.spreadsheet_title = titulo
     db.session.commit()

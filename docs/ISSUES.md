@@ -179,3 +179,48 @@ imagen de prueba, resultado idéntico en ambas. `temperature=0` reduce
 drásticamente la variación pero no es una garantía matemática absoluta de
 determinismo total (limitación conocida de los LLMs a nivel de
 infraestructura) — si vuelve a pasar con una foto real, reportarlo.
+
+---
+
+## #006 — Límite de cuota de la API de Sheets al crear las 12 pestañas del año
+**Área:** [planillas](areas/planillas/) — descubierto implementando
+[ADR-0003](areas/planillas/decisions/0003-pestanas-por-periodo.md)
+**Fecha:** 2026-07-11
+**Síntoma:** implementando la creación automática de las 12 pestañas del
+año al conectar una planilla (una llamada `add_worksheet()` + ~6 llamadas
+de formato por pestaña, mismo patrón que ya usaba `connect_spreadsheet()`
+para `sheet1`), la prueba real contra la planilla de referencia falló a
+partir de la pestaña #9 de 12.
+
+**Causa raíz:** ~80 llamadas de escritura seguidas a la API de Sheets (12
+pestañas × ~7 llamadas cada una) superan la cuota de Google
+`Write requests per minute per user` — la API devuelve HTTP 429
+("Quota exceeded"). No es un límite exclusivo de este proyecto, es la
+cuota estándar de la API de Sheets — cualquier operación que dispare
+muchas escrituras seguidas en poco tiempo puede volver a pegar contra
+esto (ej. si en el futuro se agrega backfill masivo de pestañas para
+clientes ya conectados, o migración de datos entre pestañas).
+
+**Fix:** `app/services/sheets.py::crear_pestanas_del_anio()` arma TODOS
+los requests (crear las 12 pestañas + todo su formato: negrita, fecha,
+moneda, fila congelada, anchos de columna, protección) en una sola lista
+y los manda juntos en un único `spreadsheet.batch_update(...)`, más un
+segundo llamado `values_batch_update(...)` para el texto del encabezado
+de las 12 pestañas a la vez. **2 llamadas a la API en total, no ~80.**
+
+**Estado:** ✅ resuelto y probado — las 12 pestañas se crean en ~3.7
+segundos sin errores, con encabezado/fila congelada/protección/anchos de
+columna verificados uno por uno contra la API real (no un mock), y
+probado que llamarlo dos veces no duplica ni rompe nada (idempotente).
+**Prevención a futuro**: cualquier operación nueva que escriba en varias
+pestañas/rangos a la vez debería armarse como un `batch_update` único
+desde el principio, no como un loop de llamadas individuales — este
+límite de cuota puede volver a aparecer.
+
+**Nota (2026-07-12)**: el founder volvió sobre el diseño de fondo y pidió
+crear las pestañas **de a una, en el momento en que hacen falta** (no las
+12 de una) — ver la versión vigente del ADR-0003. Con eso, el riesgo de
+esta cuota específica ya no aplica en la práctica (nunca se crea más de
+una pestaña por llamada), pero el mecanismo en lotes se mantuvo en
+`crear_pestanas()` por si hiciera falta en el futuro, y esta nota queda
+como registro de que el límite existe y hay que tenerlo presente.

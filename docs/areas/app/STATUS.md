@@ -64,10 +64,69 @@ hecha y corregida en 3 lugares (2 de ellos fuera del área App). Ese mismo
 ADR ahora también agrupa una segunda regla ("sin dos puntos en textos
 nuevos"), sumada por el ADR-0004.
 
-Además, el founder definió el foco del onboarding (ver `PRODUCTO.md`): no
-es un carrusel genérico, es el paso de **configurar la planilla** (crearla,
-compartirla con la SA, pegar la URL) — tiene que ser "a prueba de tontos".
-Diseño concreto pendiente de la conversación de diseño dedicada.
+**Onboarding de configuración de planilla — implementado (2026-07-11)**
+(`templates/config.html`, `strings/es.json`): pasó de 2 pasos genéricos a 3
+pasos secuenciados y explicados, en el orden que resultó más práctico —
+**Paso 1** copiar el email de la Service Account (acción rápida, sin salir
+de la app), **Paso 2** crear la planilla nueva (link a `sheets.new`) o
+abrir la que ya tenga, y compartirla pegando el email ya copiado, con
+explicación de que los encabezados se arman solos al conectar; **Paso 3**
+pegar el link de vuelta en la app. Ajustes visuales de paso: bordes de los
+recuadros más visibles, botones "Copiar"/"Crear planilla nueva" con el
+mismo estilo (fondo azul, texto blanco), estado "Copiado" en verde
+cursiva.
+
+**[ADR-0005 de esta área](decisions/0005-titulo-planilla-nueva.md)
+(2026-07-11, con una corrección el mismo día)**: en la primera conexión
+(nunca en reconexiones) el cliente puede elegir un título para su
+planilla. **Primer intento** (probado, pero corregido antes de la versión
+final): sugería un título precargado a partir del email. **Versión
+final, a pedido del founder**: el campo arranca **en blanco** (placeholder
+"Ej. Ferretería López") — el cliente escribe el nombre que quiera, y el
+**sistema le agrega el año automáticamente** (el cliente no escribe el
+año). Se renombra de verdad en Google Drive vía la API de Sheets
+(`gspread.Spreadsheet.update_title()`).
+
+**Además, el founder pidió crear pestañas de período al conectar** — esto
+reabrió el [ADR-0003 del área Planillas](../planillas/decisions/0003-pestanas-por-periodo.md),
+que pasó por **tres versiones en dos días**:
+- **2026-07-11**: crear las 12 pestañas mensuales del ciclo anual todas de
+  una, al conectar. Implementado y probado — pero en el camino se
+  encontró un límite real de la API de Sheets (**Issue #006**,
+  `docs/ISSUES.md`): crear 12 pestañas con el método directo (~7 llamadas
+  de escritura cada una) hace ~80 llamadas seguidas, y **se probó de
+  verdad contra la planilla de referencia — falló por cuota excedida de
+  Google a partir de la pestaña #9**. Se resolvió agrupando todo en 2
+  llamadas a la API (`batch_update` + `values_batch_update`) en vez de ~80.
+- **2026-07-12, primer ajuste**: una pestaña mensual por vez, creada
+  cuando hace falta (`JUL-26`, después `AGO-26`, etc.) — no las 12 de una.
+- **2026-07-12, versión vigente**: simplificado más — **una sola pestaña
+  por AÑO calendario** (ej. `"2026"`, sin abreviatura de mes). Conectar
+  crea la pestaña del año en curso; la del año siguiente (`"2027"`) se
+  crea recién cuando llega. El mecanismo en lotes que resolvió el Issue
+  #006 se mantuvo (por si hiciera falta crear más de una pestaña junta a
+  futuro), aunque con este ritmo (una vez por año) el límite de cuota deja
+  de ser un riesgo real.
+
+**Cierre del alcance acotado (2026-07-12, cuarta vuelta sobre el ADR-0003)**:
+el founder probó cargar una factura real y notó que se seguía guardando en
+"Hoja 1", no en la pestaña del año — el "alcance acotado" de las versiones
+anteriores (solo crear pestañas, sin usarlas) nunca se había cerrado. Ya
+está cerrado: `append_invoice`, `list_invoices` y `find_duplicate` ahora
+usan de verdad la pestaña del año (por defecto, el año actual — no busca
+en años anteriores, limitación aceptada). "Hoja 1" queda con los datos
+reales de pruebas anteriores del founder, intacta pero sin uso — confirmado
+explícitamente que no hace falta migrarla (estamos en desarrollo).
+
+Todo esto (título en blanco + año automático + pestaña anual + guardar y
+leer de esa pestaña) probado de punta a punta contra la API real de
+Sheets: una factura de prueba se guardó en la pestaña del año correcto
+(no en "Hoja 1"), se leyó de vuelta, y se detectó como duplicado al
+intentar cargarla de nuevo. Todo restaurado a su estado original en la
+planilla de referencia después de cada prueba, sin tocar los datos reales
+de "Hoja 1". **Confirmado funcionando por el founder en navegador
+(2026-07-12)** — cargó una factura real y quedó en la pestaña del año
+correcto. Commiteado y desplegado a producción el mismo día.
 
 Decisiones de diseño adoptadas en **otras** áreas que esta tiene que
 reflejar cuando se implementen:
@@ -81,11 +140,17 @@ reflejar cuando se implementen:
   (área planillas) — **ya implementado y confirmado en producción**.
 
 ## Next
-1. Probar el rediseño completo en el celular (mobile real, no solo
+1. Decidir si hace falta que "Últimas facturas"/duplicados busquen también
+   en años anteriores (hoy solo miran el año actual) — limitación aceptada
+   por ahora, ver ADR-0003 área Planillas.
+2. Decidir qué hacer con los datos que quedaron en "Hoja 1" (facturas
+   reales de pruebas del founder de antes de este cambio) — hoy no se
+   leen más. ¿Migrarlos a mano a la pestaña "2026" en algún momento, o
+   dejarlos como quedaron?
+3. Probar el rediseño completo en el celular (mobile real, no solo
    navegador desktop) — pendiente en `docs/STATUS.md` general.
-2. **Prioridad alta pre-lanzamiento**: implementar la pantalla de espera
-   (ADR-0005 repo general) con el enmascaramiento de reintentos de Gemini.
-3. Diseñar el onboarding de configuración de planilla (ver `PRODUCTO.md`) —
-   necesita una conversación de diseño dedicada.
-4. Conversación de diseño dedicada más amplia, para completar el resto de
+4. **Prioridad alta pre-lanzamiento**: implementar la pantalla de espera
+   (`docs/decisions/0005-pantalla-espera-cold-start.md`, repo general) con
+   el enmascaramiento de reintentos de Gemini.
+5. Conversación de diseño dedicada más amplia, para completar el resto de
    `PRODUCTO.md`: pantallas, flujos, identidad visual.

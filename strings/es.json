@@ -10,11 +10,17 @@
   "config": {
     "titulo": "Conectá tu planilla",
     "subtitulo": "Para guardar comprobantes necesitás vincular tu Google Sheets.",
-    "paso1": "Paso 1 — Compartí tu planilla con el asistente",
-    "paso1_desc": "Abrí tu planilla de Google Sheets → \"Compartir\" → agregá este email como Editor:",
-    "paso2": "Paso 2 — Pegá la URL o el ID de tu planilla",
-    "paso2_desc": "Podés pegar la URL completa o directamente el ID (el código largo entre /d/ y /edit).",
+    "paso1": "Paso 1 — Copiá este email",
+    "paso1_desc": "Es el email que necesita nuestro sistema para poder leer y cargar los datos en tu planilla. Lo vas a usar en el paso siguiente, así que dejalo copiado.",
+    "paso2": "Paso 2 — Creá tu planilla y compartila con nosotros",
+    "paso2_desc": "Si no tenés una planilla todavía, creá una nueva y en blanco con el botón de abajo. Si ya tenés una armada, abrila directamente. Después, en cualquiera de los dos casos, tocá \"Compartir\" arriba a la derecha y pegá el email que copiaste en el paso anterior, con permiso de Editor. Nosotros armamos los encabezados de las columnas automáticamente apenas la conectes, no hace falta que prepares nada ahí.",
+    "crear_planilla_btn": "Crear planilla nueva",
+    "paso3": "Paso 3 — Pegá el link de tu planilla acá",
+    "paso3_desc": "Copiá el link de la planilla que acabás de compartir y pegalo abajo. Podés pegar la URL completa o directamente el ID (el código largo entre /d/ y /edit).",
+    "titulo_planilla_label": "Elegí un nombre para tu planilla — le agregamos el año automáticamente",
+    "titulo_planilla_placeholder": "Ej. Ferretería López",
     "validar": "Validar conexión",
-    "copiar": "Copiar"
+    "copiar": "Copiar",
+    "copiado": "Copiado"
   }
 }

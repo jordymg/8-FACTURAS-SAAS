@@ -7,6 +7,12 @@
 - **Extracción de Gemini**: modelo y `temperature` en
   `app/services/gemini.py`. Detalle en
   `docs/decisions/0010-extraccion-determinista-temperature-cero.md`.
+- **Server local: puerto 5050, no 5000** — el redirect_uri de OAuth
+  registrado en Google Cloud Console es `http://localhost:5050/oauth2callback`
+  (descubierto el 2026-07-12 tras un rato de debug). Levantar con
+  `python -m flask --app wsgi run --debug --port 5050`, y entrar por
+  `http://localhost:5050` (con `localhost`, no `127.0.0.1` — Google los
+  trata como hosts distintos).
 
 ## Current phase
 Phase 1 en producción (`https://facturas-saas.onrender.com`), planilla v2
@@ -21,6 +27,43 @@ de inicio, header con nombre de planilla + email, y tips/textos de
 bienvenida — los cuatro del área App) **ya confirmados funcionando por el
 founder en navegador (2026-07-11)**. Ver `docs/areas/app/STATUS.md` y los
 ADRs en `docs/areas/app/decisions/`.
+
+**Onboarding de configuración de planilla implementado** (ADR-0005 área
+App, mismo día): 3 pasos reordenados (copiar email → crear/compartir
+planilla → pegar link). En la primera conexión, el cliente escribe un
+título en blanco para su planilla (el sistema le agrega el año solo).
+
+**Pestañas de período (ADR-0003 área Planillas), cuatro versiones en dos
+días — ya cerrado**: primero se probó crear las 12 pestañas mensuales del
+ciclo anual de una sola vez (2026-07-11) — encontrando **Issue #006**
+(`docs/ISSUES.md`): crear 12 pestañas de a una con todo su formato
+dispara ~80 llamadas seguidas a la API de Sheets y supera la cuota de
+Google, confirmado fallando de verdad contra la planilla de referencia;
+se resolvió agrupando todo en 2 llamadas (`batch_update` +
+`values_batch_update`). El founder ajustó el diseño dos veces más
+(2026-07-12): a una pestaña mensual por vez, y después a **una sola
+pestaña por año calendario** (ej. `"2026"`). En las primeras tres
+versiones el alcance quedaba acotado a "solo crear pestañas" — guardar y
+leer facturas seguía usando `sheet1`. **El founder probó cargar una
+factura real, vio que se seguía guardando en "Hoja 1", y marcó esto como
+un problema real** — se cerró: `append_invoice`, `list_invoices` y
+`find_duplicate` ahora usan de verdad la pestaña del año (por defecto, el
+año actual). "Hoja 1" queda con los datos reales de pruebas anteriores
+del founder, intacta pero sin uso — confirmado que no hace falta migrarla
+por ahora (estamos en desarrollo). Detalle completo en
+`docs/areas/planillas/decisions/0003-*.md`.
+
+**Confirmado funcionando por el founder en navegador (2026-07-12)** —
+cargó una factura real y quedó en la pestaña del año correcto. Commiteado
+y desplegado a producción el mismo día.
+
+**Pendiente, no bloquea nada de lo de arriba**:
+- Decidir si "Últimas facturas"/duplicados deberían buscar también en años
+  anteriores (hoy solo miran el año actual).
+- Decidir qué hacer con los datos ya cargados en "Hoja 1" antes de este
+  cambio (facturas reales de pruebas del founder) — hoy quedan intactos
+  pero sin uso, la app no los lee más. ¿Migrarlos a mano a "2026" en algún
+  momento, o dejarlos como quedaron?
 
 De paso, esta sesión también se documentó y aplicó
 `docs/decisions/0009-comunicacion-nunca-mencionar-ia.md` (repo general,
@@ -298,3 +341,30 @@ auditoría hecha, 3 textos corregidos.
   misma foto de factura podía dar datos distintos entre extracciones
   porque Gemini no tenía fijada la `temperature`. Se fija en 0
   (`app/services/gemini.py`) para una lectura consistente.
+- 2026-07-11: onboarding de conexión de planilla reordenado a 3 pasos
+  (copiar email → crear/compartir → pegar link), con textos explicados a
+  pedido del founder (ADR-0005 área App, ver `docs/areas/app/decisions/`).
+- 2026-07-11: ADR-0005 (área App) corregido el mismo día — el título de la
+  planilla nueva ya no se sugiere por email; el cliente escribe un nombre
+  en blanco y el sistema le agrega el año automáticamente.
+- 2026-07-11: ADR-0003 (área Planillas) redefinido — en vez de crear
+  pestañas de forma perezosa (idea de 2026-07-07), ahora se crean las 12
+  pestañas del ciclo anual todas juntas al conectar por primera vez.
+  Alcance acotado: solo crea las pestañas, no cambia dónde se guardan/leen
+  las facturas (sigue siendo `sheet1`).
+- 2026-07-11: Issue #006 (`docs/ISSUES.md`) — crear las 12 pestañas de a
+  una (con todo su formato) superaba la cuota de escritura por minuto de
+  la API de Sheets, confirmado fallando contra la planilla de referencia.
+  Resuelto agrupando todo en 2 llamadas a la API en vez de ~80
+  (`batch_update` + `values_batch_update`).
+- 2026-07-12: ADR-0003 (área Planillas) ajustado varias veces — de "12
+  pestañas mensuales de una" (2026-07-11) a "una mensual por vez", a "una
+  sola pestaña por año calendario" (ej. "2026"). `meses_del_ciclo_anual()`
+  y `nombre_pestana()` se sacaron del código por quedar sin uso.
+- 2026-07-12: ADR-0003 (área Planillas) — **cerrado el alcance acotado**:
+  `append_invoice`/`list_invoices`/`find_duplicate` pasan de usar
+  `sheet1` ("Hoja 1") a usar la pestaña del año real (por defecto, el año
+  actual). El founder encontró esto probando una factura real y lo marcó
+  como problema — quedó resuelto y probado contra la API real de Sheets.
+  Los datos ya cargados en "Hoja 1" quedan intactos pero sin uso, sin
+  migración (confirmado que no hace falta en etapa de desarrollo).

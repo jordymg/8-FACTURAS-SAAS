@@ -456,7 +456,7 @@ body {
 .subtitulo { color: var(--gray-500); margin-bottom: 1.5rem; font-size: .93rem; }
 .paso {
   background: #fff;
-  border: 1px solid var(--gray-200);
+  border: 1px solid var(--gray-500);
   border-radius: var(--radius);
   padding: 1.25rem 1.5rem;
   margin-bottom: 1rem;
@@ -464,16 +464,41 @@ body {
 .paso h2 { font-size: .95rem; font-weight: 600; margin-bottom: .6rem; }
 .paso p { font-size: .88rem; color: var(--gray-500); line-height: 1.55; }
 .email-sa {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: .6rem;
+  gap: 2.4rem;
   margin-top: .75rem;
   background: var(--gray-50);
-  border: 1px solid var(--gray-200);
+  border: 1px solid var(--gray-500);
   border-radius: 8px;
   padding: .55rem .9rem;
+  max-width: 100%;
 }
-.email-sa code { flex: 1; font-size: .88rem; word-break: break-all; }
+.email-sa code { font-size: .88rem; word-break: break-all; }
+
+/* Botón de copiar (paso 1 config) y "Crear planilla nueva" (paso 2) —
+   mismo formato: fondo azul, texto blanco. Al copiar, pasa a texto verde
+   cursiva "Copiado" (sin fondo, deja de leerse como botón activo). */
+.btn-copiar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: .5rem 1.1rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--blue);
+  color: #fff;
+  font-size: .95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.btn-copiar:hover:not(:disabled) { background: var(--blue-dark); }
+.btn-copiar.copiado {
+  background: transparent;
+  color: #2e9e5b;
+  font-style: italic;
+}
 .input-planilla {
   display: block;
   width: 100%;

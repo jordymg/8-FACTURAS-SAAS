@@ -18,15 +18,25 @@
     <p>{{ strings.config.paso1_desc }}</p>
     <div class="email-sa">
       <code id="sa-email">{{ sa_email }}</code>
-      <button type="button" class="btn-ghost" id="btn-copiar">{{ strings.config.copiar }}</button>
+      <button type="button" class="btn-copiar" id="btn-copiar">{{ strings.config.copiar }}</button>
     </div>
   </div>
 
   <div class="paso">
     <h2>{{ strings.config.paso2 }}</h2>
     <p>{{ strings.config.paso2_desc }}</p>
+    <a href="https://sheets.new" target="_blank" rel="noopener" class="btn-copiar" style="display:inline-flex;margin-top:.75rem;text-decoration:none">{{ strings.config.crear_planilla_btn }}</a>
+  </div>
+
+  <div class="paso">
+    <h2>{{ strings.config.paso3 }}</h2>
+    <p>{{ strings.config.paso3_desc }}</p>
     <input type="text" id="input-planilla" class="input-planilla"
            placeholder="https://docs.google.com/spreadsheets/d/...">
+    {% if not user.spreadsheet_id %}
+      <label for="input-titulo" style="display:block;font-size:.85rem;color:var(--gray-500);margin-top:.9rem;margin-bottom:.3rem">{{ strings.config.titulo_planilla_label }}</label>
+      <input type="text" id="input-titulo" class="input-planilla" placeholder="{{ strings.config.titulo_planilla_placeholder }}">
+    {% endif %}
     <button type="button" class="btn btn-primary" id="btn-validar" style="width:100%;margin-top:.75rem">
       {{ strings.config.validar }}
     </button>
@@ -39,9 +49,12 @@ document.getElementById("btn-copiar").addEventListener("click", () => {
   const email = document.getElementById("sa-email").textContent.trim();
   navigator.clipboard.writeText(email).then(() => {
     const btn = document.getElementById("btn-copiar");
-    const original = btn.textContent;
-    btn.textContent = "✓";
-    setTimeout(() => (btn.textContent = original), 1500);
+    btn.textContent = "{{ strings.config.copiado }}";
+    btn.classList.add("copiado");
+    setTimeout(() => {
+      btn.textContent = "{{ strings.config.copiar }}";
+      btn.classList.remove("copiado");
+    }, 1500);
   });
 });
 
@@ -57,11 +70,13 @@ document.getElementById("btn-validar").addEventListener("click", async () => {
   btn.disabled = true;
   btn.textContent = "Validando…";
   msg.className = "status-msg hidden";
+  const inputTitulo = document.getElementById("input-titulo");
+  const titulo = inputTitulo ? inputTitulo.value.trim() : "";
   try {
     const resp = await fetch("/api/sheet/connect", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ planilla }),
+      body: JSON.stringify({ planilla, titulo }),
     });
     const r = await resp.json();
     if (r.ok) {
