@@ -14,6 +14,22 @@
   `http://localhost:5050` (con `localhost`, no `127.0.0.1` — Google los
   trata como hosts distintos).
 
+**Rediseño del flujo de guardado (ADR-0006 área App, 2026-07-14)**: botón
+único "Guardar en Sheets" para toda la tanda (se sacan los botones por
+tarjeta), cruz "✕ Descartar factura" más visible por tarjeta, y cuenta
+regresiva de 3 segundos que redirige sola a la home (se saca el botón
+"Volver") — **sin pantalla nueva**: la cuenta regresiva reemplaza al botón
+único en su mismo lugar, las tarjetas guardadas siguen visibles arriba
+(corregido el mismo día a pedido del CEO, la primera versión sí usaba una
+pantalla de éxito separada). Falla parcial al guardar: lo guardado queda
+guardado, lo fallido se puede reintentar o descartar. Probado con una
+simulación de DOM real (jsdom) cubriendo los 6 casos pedidos — no
+confirmado todavía en navegador real (falta acceso a Chromium/Playwright
+en este entorno y login real de Google). Detalle completo en
+`docs/areas/app/STATUS.md` y el ADR. De paso, se aclaró la Regla 2 del
+ADR-0009 (repo general): no prohíbe el ":" en todo texto, aplica a
+párrafos/textos corridos, queda como criterio y no como regla mecánica.
+
 ## Current phase
 Phase 1 en producción (`https://facturas-saas.onrender.com`), planilla v2
 (23 columnas) confirmada con datos reales. **Re-priorizado el camino a
@@ -398,3 +414,14 @@ auditoría hecha, 3 textos corregidos.
   cada uno su propio espacio de trabajo/contexto. `README.md` actualizado
   con la misma referencia y una fila nueva para `docs/FEATURES.md` en la
   tabla de documentación.
+- 2026-07-14: ADR-0006 (área App) — rediseño del flujo de guardado: botón
+  único para toda la tanda, cruz de descartar más visible por tarjeta,
+  cuenta regresiva de 3s con redirección automática a la home (se saca
+  "Volver"), manejo de falla parcial (reintentar o descartar la tarjeta
+  fallida). Corregido el mismo día: la cuenta regresiva no cambia de
+  pantalla, reemplaza al botón único en su lugar (las tarjetas guardadas
+  siguen visibles). Implementado y probado con simulación de DOM real;
+  pendiente confirmación en navegador real por el founder.
+- 2026-07-14: ADR-0009 (repo general) — Regla 2 aclarada: no prohíbe el
+  ":" en todo texto visible, aplica a párrafos/textos corridos; queda como
+  criterio, no como regla mecánica. Ante la duda, consultar al CEO.

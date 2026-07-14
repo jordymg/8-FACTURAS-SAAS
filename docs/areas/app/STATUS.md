@@ -128,6 +128,38 @@ de "Hoja 1". **Confirmado funcionando por el founder en navegador
 (2026-07-12)** — cargó una factura real y quedó en la pestaña del año
 correcto. Commiteado y desplegado a producción el mismo día.
 
+**[ADR-0006 de esta área](decisions/0006-rediseno-flujo-guardado.md)
+(2026-07-14, a pedido del CEO vía handoff, con una corrección el mismo
+día)**: rediseño del flujo de guardado de la tanda de facturas — botón
+único "Guardar en Sheets" al final de las tarjetas (se saca el botón por
+tarjeta; cada factura se sigue guardando individual contra
+`POST /api/invoices`, sin endpoint de lote nuevo), cruz roja "✕ Descartar
+factura" más visible en cada tarjeta, y cuenta regresiva de 3 segundos
+("Factura guardada."/"Facturas guardadas." según singular/plural) que
+redirige sola a la home (se saca el botón "Volver"). **Primer intento**
+(probado, pero corregido antes de la versión final): la cuenta regresiva
+se mostraba en una pantalla de éxito nueva y separada, a pantalla
+completa. **Versión final, a pedido del CEO**: no cambia de pantalla — la
+cuenta regresiva reemplaza al botón único en su mismo lugar, dentro del
+mismo `screen-review`, así las tarjetas recién guardadas (con sus datos)
+siguen visibles arriba mientras corre. Falla parcial al guardar: lo que
+se guardó queda guardado, lo que falló se marca en la tarjeta con el
+error y se puede reintentar (mismo botón único) o descartar; la cuenta
+regresiva aparece recién cuando no queda ninguna tarjeta pendiente.
+Implementado en `templates/app.html`, `static/js/app.js`,
+`static/css/app.css`. **Probado con una simulación de DOM real (jsdom,
+`app.html`/`app.js` reales, `fetch` mockeado)** cubriendo los 6 casos que
+pidió el CEO (tanda de 1, tanda de 3, descartar parcial, descartar todas,
+falla parcial con reintento, descartar tras falla) — los 6 pasaron contra
+ambas versiones. **No confirmado en navegador real** (sin
+Chromium/Playwright disponible en este entorno, y el flujo requiere login
+real de Google) — pendiente de que el founder lo pruebe en vivo. De paso,
+se aclaró la Regla 2 del
+[ADR-0009 general](../../decisions/0009-comunicacion-nunca-mencionar-ia.md):
+no es una prohibición absoluta del ":" en todo texto, aplica a
+párrafos/textos corridos, y queda como criterio (no regla mecánica) —
+ante la duda, consultar al CEO.
+
 Decisiones de diseño adoptadas en **otras** áreas que esta tiene que
 reflejar cuando se implementen:
 - Pantalla de espera / cold start —
@@ -140,17 +172,25 @@ reflejar cuando se implementen:
   (área planillas) — **ya implementado y confirmado en producción**.
 
 ## Next
-1. Decidir si hace falta que "Últimas facturas"/duplicados busquen también
+1. **Confirmar el ADR-0006 (rediseño de guardado) en navegador real.**
+   Qué: probar los 6 casos del handoff (tanda de 1, tanda de 3, descartar
+   parcial, descartar todas, falla parcial con reintento, contador del
+   header) contra la app real, no solo la simulación de DOM hecha esta
+   sesión.
+   Dónde: `/app`, subiendo fotos de factura reales.
+   Qué se necesita: el founder (o quien tenga acceso) probándolo con
+   sesión de Google real.
+2. Decidir si hace falta que "Últimas facturas"/duplicados busquen también
    en años anteriores (hoy solo miran el año actual) — limitación aceptada
    por ahora, ver ADR-0003 área Planillas.
-2. Decidir qué hacer con los datos que quedaron en "Hoja 1" (facturas
+3. Decidir qué hacer con los datos que quedaron en "Hoja 1" (facturas
    reales de pruebas del founder de antes de este cambio) — hoy no se
    leen más. ¿Migrarlos a mano a la pestaña "2026" en algún momento, o
    dejarlos como quedaron?
-3. Probar el rediseño completo en el celular (mobile real, no solo
+4. Probar el rediseño completo en el celular (mobile real, no solo
    navegador desktop) — pendiente en `docs/STATUS.md` general.
-4. **Prioridad alta pre-lanzamiento**: implementar la pantalla de espera
+5. **Prioridad alta pre-lanzamiento**: implementar la pantalla de espera
    (`docs/decisions/0005-pantalla-espera-cold-start.md`, repo general) con
    el enmascaramiento de reintentos de Gemini.
-5. Conversación de diseño dedicada más amplia, para completar el resto de
+6. Conversación de diseño dedicada más amplia, para completar el resto de
    `PRODUCTO.md`: pantallas, flujos, identidad visual.

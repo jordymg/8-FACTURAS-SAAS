@@ -63,7 +63,7 @@ Toda superficie nueva de texto (carrusel ADR-0005, onboarding pendiente de
 diseño en `docs/areas/app/PRODUCTO.md`) debe revisarse contra esta regla
 antes de implementarse.
 
-## Regla 2 — sin dos puntos en textos nuevos
+## Regla 2 — evitar dos puntos en párrafos/textos corridos (criterio, no mecánica)
 
 ### Contexto
 Sesión de tips/textos de la home
@@ -71,13 +71,26 @@ Sesión de tips/textos de la home
 el CEO prefiere que los textos visibles al usuario eviten el carácter ":".
 
 ### Decisión
-Los textos visibles al usuario (tips, avisos, explicaciones) evitan el
-carácter ":". **No es retroactiva** (a diferencia de la Regla 1): aplica a
-textos nuevos de acá en adelante. El texto de entrada del ADR-0002 (área
-App) ya tenía un ":" aprobado antes de esta regla y queda exento
+Los textos visibles al usuario en **párrafos o textos corridos** (tips,
+avisos, explicaciones) evitan el carácter ":" — es ahí donde al CEO no le
+gusta cómo se lee. **No es retroactiva** (a diferencia de la Regla 1):
+aplica a textos nuevos de acá en adelante. El texto de entrada del ADR-0002
+(área App) ya tenía un ":" aprobado antes de esta regla y queda exento
 explícitamente — no se reescribe salvo pedido futuro del CEO.
+
+**Aclaración (2026-07-14, sesión del rediseño de guardado, área App)**:
+esto **no es una prohibición absoluta del carácter ":" en todo texto
+visible** — aplica al caso que la originó (párrafos/textos corridos). Hay
+casos donde un ":" no tiene el mismo problema y se puede usar sin
+inconveniente (por ejemplo, el ADR-0006 de esta área usa "3… 2… 1…" sin
+":" en el texto corrido, pero la regla no aplicaría igual a, por ejemplo,
+una etiqueta corta tipo "Total: $100"). La regla queda como **criterio a
+aplicar con sentido común**, no como chequeo mecánico de "nunca un ':' en
+ningún texto". Ante la duda sobre un caso concreto, consultar al CEO antes
+de decidir por cuenta propia.
 
 ### Consecuencias
 Los 3 textos nuevos del ADR-0004 (saludo, feedback, los 6 tips iniciales)
-ya vienen redactados sin ":". Revisar contra esta regla cualquier texto
-nuevo de acá en adelante (carrusel ADR-0005, onboarding).
+ya vienen redactados sin ":". Revisar contra este criterio (no como regla
+mecánica) cualquier texto nuevo de acá en adelante (carrusel ADR-0005,
+onboarding).

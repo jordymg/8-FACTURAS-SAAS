@@ -50,7 +50,11 @@
 <!-- Screen: review / edit (una card por comprobante) -->
 <main id="screen-review" class="screen hidden">
   <div id="cards"></div>
-  <button type="button" id="btn-volver" class="btn btn-ghost" style="width:100%;margin-top:1rem">Volver</button>
+  <button type="button" id="btn-guardar-lote" class="btn btn-primary" style="width:100%;margin-top:1rem">Guardar en Sheets</button>
+  <!-- Tras guardar toda la tanda, reemplaza al botón de arriba en el mismo
+       lugar (las tarjetas guardadas siguen visibles arriba, sin cambiar de
+       pantalla) — cuenta regresiva con redirección automática a la home. -->
+  <p id="exito-texto" class="exito-texto hidden"></p>
 </main>
 
 <script>

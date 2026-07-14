@@ -12,7 +12,13 @@
   const inputArchivos = document.getElementById("input-archivos");
   const cargandoEl = document.getElementById("cargando");
   const cardsEl = document.getElementById("cards");
-  const btnVolver = document.getElementById("btn-volver");
+  const btnGuardarLote = document.getElementById("btn-guardar-lote");
+  const exitoTextoEl = document.getElementById("exito-texto");
+
+  // Duración de la cuenta regresiva de la pantalla de éxito (ADR rediseño
+  // de guardado, área App) — único lugar donde se define, para ajustarla
+  // fácil (ej. bajarla a 2 segundos) sin tocar el resto de la lógica.
+  const DURACION_CUENTA_REGRESIVA_SEG = 3;
 
   function showScreen(id) {
     document.querySelectorAll(".screen").forEach((s) => {
@@ -83,16 +89,16 @@
     });
   }
 
-  if (btnVolver) btnVolver.addEventListener("click", () => { showScreen("screen-capture"); loadInvoices(); });
-
   // ── Cards ───────────────────────────────────────────────
-  function crearBtnDescartar(card, title) {
+  function crearBtnDescartar(card) {
     const btn = document.createElement("button");
     btn.className = "btn-descartar";
     btn.type = "button";
-    btn.textContent = "✕";
-    btn.title = title;
-    btn.onclick = () => card.remove();
+    btn.innerHTML = '<span aria-hidden="true">✕</span> Descartar factura';
+    btn.onclick = () => {
+      card.remove();
+      verificarFinTanda();
+    };
     return btn;
   }
 
@@ -105,7 +111,7 @@
     const titulo = document.createElement("span");
     titulo.textContent = r.nombre;
     header.appendChild(titulo);
-    header.appendChild(crearBtnDescartar(card, "Descartar este comprobante"));
+    header.appendChild(crearBtnDescartar(card));
     card.appendChild(header);
 
     // Aviso de posible duplicado (ADR-0009 planillas) — no bloquea nada,
@@ -194,12 +200,6 @@
     const msgVal = document.createElement("div");
     msgVal.className = "msg-validacion";
     footer.appendChild(msgVal);
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "btn-guardar";
-    btn.textContent = "Guardar en Sheets";
-    btn.onclick = () => guardarCard(card, msgVal);
-    footer.appendChild(btn);
     card.appendChild(footer);
     return card;
   }
@@ -212,7 +212,7 @@
     const titulo = document.createElement("span");
     titulo.textContent = r.nombre;
     header.appendChild(titulo);
-    header.appendChild(crearBtnDescartar(card, "Descartar"));
+    header.appendChild(crearBtnDescartar(card));
     card.appendChild(header);
 
     const body = document.createElement("div");
@@ -279,47 +279,124 @@
     return valido;
   }
 
-  async function guardarCard(card, msgVal) {
-    if (!validarCard(card, msgVal)) return;
-    const datos = {};
-    card.querySelectorAll(".campo-ctrl").forEach((ctl) => { datos[ctl.dataset.clave] = ctl.value.trim(); });
-    const btn = card.querySelector(".btn-guardar");
-    btn.disabled = true;
-    btn.textContent = "Guardando…";
-    try {
-      const resp = await fetch("/api/invoices", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(datos),
-      });
-      const resultado = await resp.json();
-      if (resultado.ok) {
-        card.className = "card guardado";
-        card.querySelectorAll(".campo-ctrl").forEach((ctl) => {
-          ctl.readOnly = true;
-          if (ctl.tagName === "SELECT") ctl.disabled = true;
+  // ── Guardado en lote (botón único) ─────────────────────
+  // Un solo botón guarda todas las tarjetas visibles (no descartadas) de la
+  // tanda; cada una sigue usando POST /api/invoices individualmente (mismo
+  // flujo de siempre, incluido el contador mensual). Los campos en rojo
+  // ("baja certeza", ADR-0008) y los avisos de duplicado (ADR-0009
+  // planillas) no bloquean: apretar este botón cuenta como confirmación
+  // implícita de todas las tarjetas visibles.
+  function marcarErrorGuardado(card, mensaje) {
+    // Reutiliza la clase visual "con-error" (borde rojo) que ya usan las
+    // tarjetas con error de extracción — acá además se deja "pendiente"
+    // para que el próximo click del botón único reintente solo esta.
+    card.classList.add("con-error");
+    let errDiv = card.querySelector(".save-error");
+    if (!errDiv) {
+      errDiv = document.createElement("div");
+      errDiv.className = "error-msg save-error";
+      card.querySelector(".card-footer").appendChild(errDiv);
+    }
+    errDiv.textContent = mensaje;
+  }
+
+  async function guardarTanda() {
+    const cards = [...cardsEl.querySelectorAll(".card.pendiente")];
+    if (!cards.length) return;
+
+    btnGuardarLote.disabled = true;
+    btnGuardarLote.textContent = "Guardando…";
+
+    for (const card of cards) {
+      if (!card.isConnected) continue; // se descartó mientras se guardaba el resto de la tanda
+      const msgVal = card.querySelector(".msg-validacion");
+      if (!validarCard(card, msgVal)) continue; // sigue pendiente, corrige y reintenta con el mismo botón
+
+      const datos = {};
+      card.querySelectorAll(".campo-ctrl").forEach((ctl) => { datos[ctl.dataset.clave] = ctl.value.trim(); });
+
+      try {
+        const resp = await fetch("/api/invoices", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(datos),
         });
-        const okDiv = document.createElement("div");
-        okDiv.className = "ok-msg";
-        okDiv.textContent = "✓ Guardado en Sheets";
-        btn.replaceWith(okDiv);
-        msgVal.style.display = "none";
-      } else {
-        btn.disabled = false;
-        btn.textContent = "Reintentar guardar";
-        let errDiv = card.querySelector(".save-error");
-        if (!errDiv) {
-          errDiv = document.createElement("div");
-          errDiv.className = "error-msg save-error";
-          btn.after(errDiv);
+        const resultado = await resp.json();
+        if (resultado.ok) {
+          card.classList.remove("pendiente", "con-error");
+          card.classList.add("guardado");
+          card.querySelectorAll(".campo-ctrl").forEach((ctl) => {
+            ctl.readOnly = true;
+            if (ctl.tagName === "SELECT") ctl.disabled = true;
+          });
+          msgVal.style.display = "none";
+          const errDiv = card.querySelector(".save-error");
+          if (errDiv) errDiv.remove();
+          const okDiv = document.createElement("div");
+          okDiv.className = "ok-msg";
+          okDiv.textContent = "✓ Guardado en Sheets";
+          card.querySelector(".card-footer").appendChild(okDiv);
+        } else {
+          marcarErrorGuardado(card, resultado.error);
         }
-        errDiv.textContent = resultado.error;
+      } catch (e) {
+        marcarErrorGuardado(card, "Error de red. Probá guardar de nuevo.");
       }
-    } catch (e) {
-      btn.disabled = false;
-      btn.textContent = "Reintentar guardar";
+    }
+
+    btnGuardarLote.disabled = false;
+    btnGuardarLote.textContent = "Guardar en Sheets";
+    verificarFinTanda();
+  }
+
+  // Se llama tras descartar una tarjeta o tras un intento de guardado en
+  // lote: si ya no queda ninguna tarjeta pendiente de resolución (todas
+  // guardadas o descartadas), cierra la tanda. Con al menos una guardada,
+  // pantalla de éxito con cuenta regresiva; si se descartó todo sin guardar
+  // nada, vuelve directo a la home sin pantalla de éxito.
+  function verificarFinTanda() {
+    if (cardsEl.querySelector(".card:not(.guardado)")) return;
+    const guardadas = cardsEl.querySelectorAll(".card.guardado").length;
+    if (guardadas > 0) {
+      mostrarPantallaExito(guardadas);
+    } else {
+      showScreen("screen-capture");
+      loadInvoices();
     }
   }
+
+  // No cambia de pantalla — las tarjetas ya guardadas siguen visibles
+  // arriba. La cuenta regresiva ocupa el lugar del botón único, en el
+  // mismo screen-review, hasta que redirige sola a la home.
+  function mostrarPantallaExito(cantidad) {
+    const base = cantidad === 1 ? "Factura guardada." : "Facturas guardadas.";
+    btnGuardarLote.classList.add("hidden");
+    exitoTextoEl.classList.remove("hidden");
+
+    const numeros = [DURACION_CUENTA_REGRESIVA_SEG + "…"];
+    const render = () => {
+      exitoTextoEl.textContent = `${base} Volviendo al inicio en ${numeros.join(" ")}`;
+    };
+    render();
+
+    let tick = 0;
+    const intervalo = setInterval(() => {
+      tick++;
+      if (tick < DURACION_CUENTA_REGRESIVA_SEG) {
+        numeros.push((DURACION_CUENTA_REGRESIVA_SEG - tick) + "…");
+        render();
+      } else {
+        clearInterval(intervalo);
+        cardsEl.innerHTML = "";
+        exitoTextoEl.classList.add("hidden");
+        btnGuardarLote.classList.remove("hidden");
+        showScreen("screen-capture");
+        loadInvoices();
+      }
+    }, 1000);
+  }
+
+  if (btnGuardarLote) btnGuardarLote.addEventListener("click", guardarTanda);
 
   // ── Contador y aviso de tope mensual (ADR-0008) ────────
   // Se actualizan cada vez que se recargan las últimas facturas (volver a
