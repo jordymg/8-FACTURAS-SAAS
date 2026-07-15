@@ -160,6 +160,30 @@ no es una prohibición absoluta del ":" en todo texto, aplica a
 párrafos/textos corridos, y queda como criterio (no regla mecánica) —
 ante la duda, consultar al CEO.
 
+**[ADR-0004, Decisión E — rediseño visual del tip rotativo](decisions/0004-tips-y-textos-de-bienvenida-home.md)
+(2026-07-15, a pedido del CEO vía handoff)**: el CEO reportó que el tip se
+veía muy chico y pasaba desapercibido. Cambio **solo visual**, sin tocar
+la rotación ni los textos: el tip pasa a renderizarse como tarjeta (fondo
+celeste `#eef4ff` — mismo tono que ya usaba el foco de los inputs, distinto
+a propósito del amarillo de `.aviso-limite`/`.aviso-duplicado` para no
+leerse como advertencia), bordes redondeados, padding generoso, texto un
+escalón más grande (`.82rem` → `.92rem`) y más oscuro (mejor contraste), e
+ícono de lamparita (SVG inline, sin librería nueva) a la izquierda del
+texto. Posición sin cambios (debajo de la dropzone, arriba de "Últimas
+facturas"). `static/js/app.js` (rotación cada 9s, fade, orden, arranque
+aleatorio) **no se tocó** — confirmado por diff vacío; el ícono convive
+con la rotación existente envolviendo `#tip-rotativo` en un `.tip-card`
+contenedor y resolviendo el show/hide con CSS `:has()`, sin que el JS
+necesite saber nada de eso. **Probado con Playwright/Chromium** (instalado
+para esta sesión) contra el HTML real de `/app` — renderizado por Flask
+con un usuario de prueba en una base SQLite temporal, sin tocar la base de
+desarrollo real — en viewport desktop y mobile: tarjeta visible con ícono,
+rotación sigue funcionando (el texto cambia tras >9s), sin overflow
+horizontal en mobile, fondo del tip distinguible en código y a simple
+vista del amarillo del aviso de límite (se probaron ambos juntos en
+pantalla), buen contraste de texto. **No probado en celular real** — ver
+detalle completo en el ADR.
+
 Decisiones de diseño adoptadas en **otras** áreas que esta tiene que
 reflejar cuando se implementen:
 - Pantalla de espera / cold start —

@@ -154,13 +154,43 @@ body {
   margin-bottom: 1rem;
 }
 
-/* Tip rotativo (ADR-0004 área App) — debajo de la dropzone, arriba de
-   "Últimas facturas". Fade suave al cambiar de tip. */
-.tip-rotativo {
-  color: var(--gray-500);
-  font-size: .82rem;
-  line-height: 1.4;
+/* Tip rotativo (ADR-0004 área App, rediseño visual — adenda 2026-07-15):
+   tarjeta con ícono, debajo de la dropzone, arriba de "Últimas facturas".
+   Fondo celeste (mismo tono que el foco de los inputs, #eef4ff) para no
+   confundirse con el amarillo de .aviso-limite/.aviso-duplicado. El JS de
+   rotación (static/js/app.js) no cambia: sigue togglando "hidden" y
+   "tip-oculto" solo en #tip-rotativo — el show/hide y el fade de la
+   tarjeta entera (ícono incluido) se resuelven acá con :has(), sin tocar
+   la lógica de rotación. Las reglas en .tip-rotativo quedan como resguardo
+   por si algún navegador no soporta :has(). */
+.tip-card {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
   margin: .75rem 0;
+  padding: 1rem 1.1rem;
+  border-radius: var(--radius);
+  background: #eef4ff;
+  opacity: 1;
+  transition: opacity .3s ease;
+}
+.tip-card:has(> .tip-rotativo.hidden) { display: none; }
+.tip-card:has(> .tip-rotativo.tip-oculto) { opacity: 0; }
+
+.tip-icono {
+  flex: none;
+  width: 1.4rem;
+  height: 1.4rem;
+  color: var(--blue);
+}
+
+.tip-rotativo {
+  flex: 1;
+  min-width: 0;
+  color: var(--gray-900);
+  font-size: .92rem;
+  line-height: 1.4;
+  margin: 0;
   min-height: 1.2em;
   opacity: 1;
   transition: opacity .3s ease;

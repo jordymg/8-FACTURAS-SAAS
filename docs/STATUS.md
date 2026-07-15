@@ -73,6 +73,20 @@ cada visita. Dos causas, ambas corregidas:
   original del reporte). Detalle completo en
   `docs/decisions/0012-sesion-90-dias-oauth-sin-reconsentimiento.md`.
 
+**Rediseño visual del tip rotativo de la home (ADR-0004 área App, Decisión
+E, handoff del CEO, 2026-07-15)**: el tip se veía muy chico y pasaba
+desapercibido. Cambio solo visual (CSS/HTML) — tarjeta con fondo celeste
+suave (distinto del amarillo de avisos), bordes redondeados, texto más
+grande y con más contraste, ícono de lamparita a la izquierda. Rotación,
+textos y posición sin cambios (`static/js/app.js` no se tocó, confirmado
+por diff vacío). Probado con Playwright/Chromium (instalado para esta
+sesión) contra el HTML real de `/app` en desktop y mobile — tarjeta
+visible, ícono presente, rotación funcionando, sin overflow horizontal,
+fondo distinguible del aviso de límite mensual, buen contraste. Pendiente
+de confirmación en celular real. Detalle completo en
+`docs/areas/app/decisions/0004-tips-y-textos-de-bienvenida-home.md` y
+`docs/areas/app/STATUS.md`.
+
 ## Current phase
 Phase 1 en producción (`https://facturas-saas.onrender.com`), planilla v2
 (23 columnas) confirmada con datos reales. **Re-priorizado el camino a
@@ -468,6 +482,12 @@ auditoría hecha, 3 textos corregidos.
 - 2026-07-14: ADR-0009 (repo general) — Regla 2 aclarada: no prohíbe el
   ":" en todo texto visible, aplica a párrafos/textos corridos; queda como
   criterio, no como regla mecánica. Ante la duda, consultar al CEO.
+- 2026-07-15: ADR-0004 área App, Decisión E (handoff del CEO) — rediseño
+  visual del tip rotativo de la home: tarjeta con fondo celeste, bordes
+  redondeados, texto más grande/oscuro e ícono de lamparita. Solo
+  CSS/HTML, `static/js/app.js` sin tocar. Probado con Playwright/Chromium
+  contra el HTML real de `/app`, desktop y mobile. Pendiente confirmación
+  en celular real.
 - 2026-07-15: ADR-0012 (repo general, handoff del CEO) — sesión de Flask
   permanente (90 días de inactividad, renovable) +
   `SESSION_REFRESH_EACH_REQUEST` + cookie con `HttpOnly`/`SameSite=Lax`/

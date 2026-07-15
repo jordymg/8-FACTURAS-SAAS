@@ -1,9 +1,10 @@
 # ADR-0004 (app): Tips gestionables + textos de bienvenida y feedback en la home
 
-**Date:** 2026-07-11
+**Date:** 2026-07-11 (adenda visual: 2026-07-15)
 **Status:** ADOPTADA e IMPLEMENTADA — origen: sesión de diseño CEO (Jordi) + CPO (Claude), APROBADO por CEO.
 Confirmada funcionando por el founder en navegador el mismo día, tras dos
-rondas de ajustes visuales chicos (ver nota en Decisión C).
+rondas de ajustes visuales chicos (ver nota en Decisión C). Ver Decisión E
+para el rediseño visual del tip (tarjeta + ícono) del 2026-07-15.
 
 ## Contexto
 El [ADR-0005 general](../../decisions/0005-pantalla-espera-cold-start.md)
@@ -69,6 +70,64 @@ regla cada uno. **No es retroactiva** (a diferencia de la regla de "nunca
 decir IA"): aplica a textos nuevos de acá en adelante; el texto de entrada
 existente con ":" queda exento explícitamente (ver Decisión C, punto 2).
 
+## Decisión E — Rediseño visual: tarjeta con ícono (2026-07-15)
+El CEO reportó que el tip se veía muy chico y pasaba desapercibido.
+Handoff aprobado por el CEO, cambio **solo visual** — no toca la Decisión
+B (rotación cada 9s, índice aleatorio inicial, fade) ni los textos de los
+tips (siguen viniendo de `strings/tips.txt`).
+
+- El tip pasa a renderizarse como **tarjeta**: fondo celeste suave
+  (`#eef4ff`, el mismo tono que ya usaba el foco de los inputs del
+  formulario — no un color nuevo en la paleta), bordes redondeados
+  (`var(--radius)`, igual que el resto de tarjetas/recuadros de la app), y
+  padding generoso.
+- Tamaño de letra: sube un escalón, de `.82rem` a `.92rem` — por debajo de
+  `.entrada` (`1rem`) y del título del header (`1.1rem`), como pidió el
+  handoff ("sin llegar al tamaño de títulos/encabezados").
+- Color de texto: pasa de `var(--gray-500)` (gris pálido, parte del
+  problema de "pasa desapercibido") a `var(--gray-900)`, para buen
+  contraste sobre el fondo celeste.
+- **Ícono de lamparita** a la izquierda del texto, alineado verticalmente
+  — SVG inline (`<svg class="tip-icono">`, stroke `currentColor` en
+  `var(--blue)`), sin agregar ninguna librería de íconos nueva (no había
+  ninguna en el proyecto).
+- **Color deliberadamente distinto del amarillo** de `.aviso-limite` /
+  `.aviso-duplicado` (`#fff8e6`) — para que el tip no se lea como una
+  advertencia.
+- Posición sin cambios: sigue debajo de la dropzone, arriba de "Últimas
+  facturas".
+
+**Decisión técnica de implementación** (no estaba en el handoff, surgió al
+implementar): el JS de rotación (`static/js/app.js`) manipula
+`textContent` de `#tip-rotativo` directamente en cada tip nuevo — si el
+ícono viviera adentro de ese mismo elemento, cada rotación lo borraría.
+Se resolvió sin tocar `app.js` en absoluto: el ícono queda como hermano
+de `#tip-rotativo` dentro de un `.tip-card` contenedor, y el show/hide +
+fade de la tarjeta completa (ícono incluido) se controla con CSS
+`:has()` apuntando al estado de `#tip-rotativo` (que sigue siendo el
+único elemento que el JS toca, exactamente igual que antes). Las reglas
+viejas de `.tip-rotativo` quedan como resguardo por si algún navegador no
+soportara `:has()` (soportado en navegadores mobile desde 2023, no es un
+riesgo real para el público de la app).
+
+### Alternativas consideradas
+- Mover el tip arriba de la dropzone — descartada, la posición actual
+  está bien para el CEO.
+- Animar la transición entre tips (más allá del fade que ya existía) —
+  descartada por ahora, podría retomarse a futuro.
+- Convertir el espacio en una tarjeta de novedades/avisos más genérica
+  (no solo tips) — descartada por ahora, podría discutirse a futuro.
+
+### Consecuencias
+- El tip gana jerarquía visual sin cambiar su comportamiento ni su
+  posición — riesgo bajo, cambio acotado a `templates/app.html` y
+  `static/css/app.css` únicamente (`static/js/app.js` sin tocar,
+  confirmado por diff vacío).
+- Introduce el primer uso de `:has()` en el CSS del proyecto — si algún
+  navegador viejo no lo soporta, el único efecto es que la tarjeta no se
+  oculta/atenúa via CSS (se apoya en el resguardo de `.tip-rotativo`), no
+  rompe nada.
+
 ## Implementación
 - `strings/tips.txt` (nuevo).
 - `app/services/tips.py` (nuevo): `get_tips() -> list[str]`, tolera archivo
@@ -81,6 +140,15 @@ existente con ":" queda exento explícitamente (ver Decisión C, punto 2).
 - `static/css/app.css`: jerarquía tipográfica nueva (`.saludo`, `.entrada`,
   `.feedback`, ya no se usa el nombre `.bienvenida`), estilos del tip
   rotativo. Respeta el `max-width` de `.contenido-centrado` (ADR-0002).
+
+**Adenda 2026-07-15 (Decisión E, tarjeta + ícono)**:
+- `templates/app.html`: `#tip-rotativo` pasa de `<p>` suelto a estar
+  envuelto en `<div class="tip-card">` junto al SVG del ícono (hermano,
+  no hijo).
+- `static/css/app.css`: `.tip-card` (fondo, radio, padding, flex),
+  `.tip-icono`, `.tip-rotativo` actualizado (tamaño de letra, color,
+  `flex:1; min-width:0` para que el texto haga wrap en mobile sin
+  desbordar). `static/js/app.js` **sin cambios**.
 
 ## Fuera de alcance
 1. Implementar la pantalla de espera / carrusel del ADR-0005 general — el
@@ -103,3 +171,48 @@ existente con ":" queda exento explícitamente (ver Decisión C, punto 2).
    en un tip aleatorio distinto en cada carga.
 5. Ninguno de los textos nuevos (saludo, feedback, tips) usa ":".
 6. `docs/areas/app/STATUS.md` y `docs/STATUS.md` actualizados.
+
+**Criterios de aceptación de la adenda (Decisión E, 2026-07-15)**:
+7. El tip se ve como tarjeta (fondo, bordes redondeados, padding) con
+   ícono de lamparita a la izquierda del texto.
+8. La posición no cambia (sigue debajo de la dropzone, arriba de "Últimas
+   facturas") y la rotación (9s, fade, orden, arranque aleatorio) sigue
+   funcionando igual que antes.
+9. El color de fondo de la tarjeta del tip es distinguible a simple vista
+   del amarillo de `.aviso-limite`/`.aviso-duplicado` (no se confunde con
+   una advertencia).
+10. En mobile (viewport angosto) la tarjeta no genera scroll horizontal ni
+    empuja el resto del contenido fuera de pantalla.
+11. El texto es legible sobre el nuevo fondo (contraste suficiente).
+
+### Pruebas hechas (2026-07-15)
+Sin Chromium/Playwright instalado de entrada en este entorno — se instaló
+para esta sesión (`npx playwright install chromium`) y se armó una prueba
+real (no simulada):
+1. Se generó el HTML **real** de `/app` (Flask + Jinja reales, no HTML
+   escrito a mano) contra un usuario de prueba en una base SQLite temporal
+   en el scratchpad — la base de desarrollo real (`app.db`) no se tocó.
+   El usuario de prueba se configuró con 165 facturas del ciclo (arriba
+   del umbral de 160) para forzar que `.aviso-limite` (amarillo) y la
+   tarjeta del tip (celeste) aparezcan juntos en pantalla y se pueda
+   verificar que no se confunden.
+2. Ese HTML se sirvió con los assets reales (`static/css/app.css`,
+   `static/js/app.js` sin modificar) y se abrió con Playwright/Chromium en
+   dos viewports: desktop (1280×900) y mobile (375×812, tamaño iPhone).
+3. Verificado por código (no solo visual): la tarjeta es visible, contiene
+   el ícono SVG, el texto cambia solo tras esperar >9s (la rotación sigue
+   funcionando), no hay overflow horizontal en mobile, el fondo de la
+   tarjeta (`rgb(238,244,255)` = `#eef4ff`) es distinto del fondo de
+   `.aviso-limite` (`rgb(255,248,230)` = `#fff8e6`) y del fondo general
+   (`rgb(249,250,251)`), y el texto usa `var(--gray-900)` sobre ese fondo
+   (contraste alto).
+4. Verificado visualmente con capturas de pantalla en ambos viewports —
+   tarjeta con ícono, bien diferenciada del aviso amarillo, sin romper el
+   layout en mobile.
+5. Confirmado por diff que `static/js/app.js` no se tocó (0 líneas
+   cambiadas) — la lógica de rotación es exactamente la misma.
+
+**No probado**: el celular real (el entorno de pruebas es Chromium
+headless emulando un viewport mobile, no un dispositivo real) — mismo
+tipo de limitación que otras sesiones de esta área (ADR-0006). Pendiente
+de que el CEO lo confirme en su teléfono.
