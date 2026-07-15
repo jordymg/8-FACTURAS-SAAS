@@ -444,24 +444,30 @@
 
   if (document.getElementById("screen-capture")) loadInvoices();
 
-  // ── Tips rotativos (ADR-0004 área App) ─────────────────
-  // Un tip por vez, arranca en uno aleatorio, rota cada 9s con fade.
-  const TIPS = window.__TIPS__ || [];
-  const tipEl = document.getElementById("tip-rotativo");
-  if (tipEl && TIPS.length) {
-    let i = Math.floor(Math.random() * TIPS.length);
-    const mostrarTip = () => {
-      tipEl.textContent = `Tip — ${TIPS[i]}`;
-      tipEl.classList.remove("hidden");
-      tipEl.classList.remove("tip-oculto");
+  // ── Carruseles rotativos tipo "tip" (ADR-0004 / ADR-0007 área App) ────
+  // Un texto por vez, arranca en uno aleatorio, rota cada 9s con fade.
+  // Reutilizada por el tip de la home y el carrusel de consejos de la
+  // pantalla de revisión — cada llamado tiene su propio índice/timer,
+  // así que no se pisan entre sí aunque compartan la misma función.
+  function iniciarCarruselRotativo(elId, textos) {
+    const el = document.getElementById(elId);
+    if (!el || !textos.length) return;
+    let i = Math.floor(Math.random() * textos.length);
+    const mostrar = () => {
+      el.textContent = `Tip — ${textos[i]}`;
+      el.classList.remove("hidden");
+      el.classList.remove("tip-oculto");
     };
-    mostrarTip();
+    mostrar();
     setInterval(() => {
-      tipEl.classList.add("tip-oculto");
+      el.classList.add("tip-oculto");
       setTimeout(() => {
-        i = (i + 1) % TIPS.length;
-        mostrarTip();
+        i = (i + 1) % textos.length;
+        mostrar();
       }, 300);
     }, 9000);
   }
+
+  iniciarCarruselRotativo("tip-rotativo", window.__TIPS__ || []);
+  iniciarCarruselRotativo("consejo-revision-rotativo", window.__CONSEJOS_REVISION__ || []);
 })();

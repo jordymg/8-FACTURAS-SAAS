@@ -1,0 +1,15 @@
+# Consejos que se muestran rotando en la pantalla de revisión de
+# facturas. Para editar: agregá, sacá o cambiá una línea y guardá el
+# archivo — el deploy es automático (push a git), no hace falta tocar
+# código. Un consejo por línea. Las líneas vacías o que empiecen con #
+# (como esta) se ignoran. Si el archivo queda vacío, la pantalla
+# simplemente no muestra el carrusel — no rompe nada.
+# Este archivo también sirve para avisar novedades/mejoras pedidas por
+# clientes a medida que se implementan — no son solo consejos de uso.
+
+Los campos en rojo son datos que conviene revisar. Corregilos si hace falta y guardá tranquilo.
+¿Una foto salió mal o está repetida? Tocá la cruz roja para descartar esa factura antes de guardar.
+Podés editar cualquier campo antes de guardar. Tocalo y escribí el valor correcto.
+Si ya subiste esta factura antes, te lo avisamos arriba de la tarjeta para que no se cargue dos veces.
+Un solo botón guarda todas las facturas de la tanda. Revisá cada tarjeta y guardá todo junto.
+¿Te gustaría que la app haga algo más? Contanos, las mejoras salen de los pedidos de nuestros clientes.

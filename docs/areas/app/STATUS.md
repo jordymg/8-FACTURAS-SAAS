@@ -184,6 +184,31 @@ vista del amarillo del aviso de límite (se probaron ambos juntos en
 pantalla), buen contraste de texto. **No probado en celular real** — ver
 detalle completo en el ADR.
 
+**[ADR-0007 de esta área — carrusel "consejos de revisión"](decisions/0007-carrusel-consejos-revision.md)
+(2026-07-15, a pedido del CEO vía handoff)**: segundo carrusel rotativo,
+independiente del tip de la home, en la pantalla de revisión de facturas
+— arriba de las tarjetas, primer elemento visible al entrar a revisar.
+Réplica exacta del estilo de la tarjeta de tip de home (mismas clases CSS
+`.tip-card`/`.tip-icono`/`.tip-rotativo`, sin una sola línea nueva en
+`static/css/app.css`) y misma mecánica de rotación (9s, fade, arranque
+aleatorio, prefijo "Tip — "). Contenido propio, en un archivo nuevo
+(`strings/consejos-revision.txt`, misma convención que `strings/tips.txt`,
+leído por `app/services/consejos_revision.py::get_consejos_revision()`)
+con los 6 textos exactos aprobados por el CEO — pensado para consejos de
+uso de esa pantalla y también para avisar novedades/mejoras pedidas por
+clientes a futuro. El bloque de rotación de `static/js/app.js` se
+refactorizó en una función reutilizable
+(`iniciarCarruselRotativo(elId, textos)`) sin cambiar timings ni
+comportamiento — se usa una vez para el tip de home y otra para el
+carrusel nuevo, cada uno con su propio índice/timer independiente.
+**Probado con Playwright/Chromium** contra el HTML real de `/app`, con 1
+y con 3 tarjetas de factura simuladas, en desktop y mobile: el carrusel
+se ve arriba de la primera tarjeta sin empujarla fuera de vista ni
+generar overflow horizontal, ambos carruseles rotan de forma
+independiente (confirmado que cambian de texto por separado tras >9s), y
+el tip de home sigue intacto. **No probado en celular real** — ver
+detalle completo en el ADR.
+
 Decisiones de diseño adoptadas en **otras** áreas que esta tiene que
 reflejar cuando se implementen:
 - Pantalla de espera / cold start —

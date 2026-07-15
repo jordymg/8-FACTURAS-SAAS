@@ -87,6 +87,22 @@ de confirmación en celular real. Detalle completo en
 `docs/areas/app/decisions/0004-tips-y-textos-de-bienvenida-home.md` y
 `docs/areas/app/STATUS.md`.
 
+**Carrusel "consejos de revisión" en la pantalla de revisión (ADR-0007
+área App, handoff del CEO, 2026-07-15)**: segundo carrusel rotativo,
+independiente del tip de la home, arriba de las tarjetas de facturas en
+la pantalla de revisión. Réplica exacta del estilo visual del tip de home
+(mismas clases CSS, cero líneas nuevas en `static/css/app.css`) y misma
+mecánica de rotación, con contenido propio en un archivo nuevo
+(`strings/consejos-revision.txt`, 6 textos exactos aprobados por el CEO).
+`static/js/app.js` refactorizado en una función reutilizable para ambos
+carruseles, sin cambiar timings ni comportamiento. Probado con
+Playwright/Chromium contra el HTML real de `/app` con 1 y 3 tarjetas, en
+desktop y mobile — sin overflow ni tarjeta empujada fuera de vista, ambos
+carruseles rotan independiente, tip de home intacto. Pendiente
+confirmación en celular real. Detalle completo en
+`docs/areas/app/decisions/0007-carrusel-consejos-revision.md` y
+`docs/areas/app/STATUS.md`.
+
 ## Current phase
 Phase 1 en producción (`https://facturas-saas.onrender.com`), planilla v2
 (23 columnas) confirmada con datos reales. **Re-priorizado el camino a
@@ -488,6 +504,16 @@ auditoría hecha, 3 textos corregidos.
   CSS/HTML, `static/js/app.js` sin tocar. Probado con Playwright/Chromium
   contra el HTML real de `/app`, desktop y mobile. Pendiente confirmación
   en celular real.
+- 2026-07-15: ADR-0007 área App (handoff del CEO) — carrusel "consejos de
+  revisión" en la pantalla de revisión de facturas, arriba de las
+  tarjetas, réplica del estilo del tip de home (mismas clases CSS, sin
+  tocar `static/css/app.css`) y misma mecánica de rotación
+  (`static/js/app.js` refactorizado en una función reutilizable, sin
+  cambiar timings). Textos propios en `strings/consejos-revision.txt` (6
+  exactos del handoff). Probado con Playwright/Chromium con 1 y 3
+  tarjetas, desktop y mobile: sin overflow, ambos carruseles rotan
+  independiente, tip de home intacto. Pendiente confirmación en celular
+  real.
 - 2026-07-15: ADR-0012 (repo general, handoff del CEO) — sesión de Flask
   permanente (90 días de inactividad, renovable) +
   `SESSION_REFRESH_EACH_REQUEST` + cookie con `HttpOnly`/`SameSite=Lax`/

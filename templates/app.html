@@ -56,6 +56,17 @@
 
 <!-- Screen: review / edit (una card por comprobante) -->
 <main id="screen-review" class="screen hidden">
+  <!-- Carrusel "consejos de revisión" (ADR-0007 área App) — mismo
+       lenguaje visual que el tip de la home (ADR-0004), carrusel
+       independiente con su propio archivo de textos. -->
+  <div class="tip-card">
+    <svg class="tip-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M9 18h6"/>
+      <path d="M10 22h4"/>
+      <path d="M12 2a7 7 0 0 0-4 12.75V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.25A7 7 0 0 0 12 2Z"/>
+    </svg>
+    <p id="consejo-revision-rotativo" class="tip-rotativo hidden"></p>
+  </div>
   <div id="cards"></div>
   <button type="button" id="btn-guardar-lote" class="btn btn-primary" style="width:100%;margin-top:1rem">Guardar en Sheets</button>
   <!-- Tras guardar toda la tanda, reemplaza al botón de arriba en el mismo
@@ -68,6 +79,7 @@
   window.__STRINGS__ = {{ strings | tojson }};
   window.__CAMPOS__ = {{ campos_json | safe }};
   window.__TIPS__ = {{ tips_json | safe }};
+  window.__CONSEJOS_REVISION__ = {{ consejos_revision_json | safe }};
 </script>
 <script src="{{ url_for('static', filename='js/app.js') }}?v={{ asset_version('js/app.js') }}"></script>
 <script>
