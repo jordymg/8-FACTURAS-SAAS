@@ -38,9 +38,16 @@ def google_login():
     flow = _flow(url_for("auth.google_callback", _external=True))
     # nota: el redirect_uri debe coincidir EXACTO con el registrado en
     # Google Cloud Console para este client_id (ver docs/decisions/0004).
+    # Sin prompt="consent" ni access_type="offline": no pedimos refresh
+    # token ni acceso offline (scopes de solo identidad), así que forzar
+    # la pantalla de consentimiento en cada login no tiene justificación —
+    # solo generaba un grant nuevo (y el mail de Google) cada vez.
+    # access_type="online" es explícito a propósito: la librería
+    # google-auth-oauthlib pone "offline" por default si no se indica lo
+    # contrario (Flow.authorization_url hace kwargs.setdefault). Ver
+    # docs/decisions/0012-sesion-90-dias-oauth-sin-reconsentimiento.md.
     authorization_url, state = flow.authorization_url(
-        access_type="offline",
-        prompt="consent",
+        access_type="online",
         include_granted_scopes="true",
     )
     session["oauth_state"] = state
@@ -77,6 +84,7 @@ def google_callback():
         db.session.add(user)
         db.session.commit()
 
+    session.permanent = True
     session["user_id"] = user.id
     return redirect(url_for("web.app_view"))
 

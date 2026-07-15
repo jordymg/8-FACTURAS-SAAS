@@ -7,6 +7,9 @@
 - **Extracción de Gemini**: modelo y `temperature` en
   `app/services/gemini.py`. Detalle en
   `docs/decisions/0010-extraccion-determinista-temperature-cero.md`.
+- **Duración de la sesión**: `SESSION_LIFETIME_DIAS` (90 días de
+  inactividad, renovable) en `app/__init__.py`. Detalle en
+  `docs/decisions/0012-sesion-90-dias-oauth-sin-reconsentimiento.md`.
 - **Server local: puerto 5050, no 5000** — el redirect_uri de OAuth
   registrado en Google Cloud Console es `http://localhost:5050/oauth2callback`
   (descubierto el 2026-07-12 tras un rato de debug). Levantar con
@@ -29,6 +32,46 @@ en este entorno y login real de Google). Detalle completo en
 `docs/areas/app/STATUS.md` y el ADR. De paso, se aclaró la Regla 2 del
 ADR-0009 (repo general): no prohíbe el ":" en todo texto, aplica a
 párrafos/textos corridos, queda como criterio y no como regla mecánica.
+
+**Sesión persistente de 90 días + OAuth sin re-consentimiento (ADR-0012
+repo general, handoff del CEO, 2026-07-15)**: reportado desde el celular —
+la app pedía login de nuevo Y mostraba la pantalla de permisos de Google
+de nuevo Y llegaba un mail de Google de "autorizaste la aplicación", en
+cada visita. Dos causas, ambas corregidas:
+- La sesión de Flask no era permanente (`session.permanent` nunca se
+  seteaba) → cookie "de navegador" sin vencimiento propio, se perdía al
+  cerrar el navegador del todo. Ahora `session.permanent = True` al
+  loguear (`app/blueprints/auth.py`) + `PERMANENT_SESSION_LIFETIME` = 90
+  días en una sola constante (`SESSION_LIFETIME_DIAS`,
+  `app/__init__.py`) + `SESSION_REFRESH_EACH_REQUEST = True` (el plazo
+  corre desde el último uso, no desde el login) + cookie con
+  `HttpOnly`, `SameSite=Lax`, y `Secure` solo en producción (detectado
+  con la env var `RENDER=true` que pone Render sola).
+- El login forzaba `prompt="consent"` en cada intento, generando un grant
+  nuevo (de ahí el mail) cada vez — se saca. Además, la librería
+  `google-auth-oauthlib` pone `access_type="offline"` **por default** si
+  no se indica lo contrario (no alcanzaba con simplemente no
+  mencionarlo) — se pasa `access_type="online"` explícito para
+  desactivarlo.
+- `SECRET_KEY` ya se leía de variable de entorno (no se generaba en el
+  proceso) y en Render usa `generateValue: true`, que — confirmado contra
+  la documentación de Render — genera el valor una sola vez al crear el
+  servicio y lo persiste; no se regenera en cada deploy. No hizo falta
+  cambiar nada ahí, solo confirmarlo.
+- **Probado en este entorno** (sin browser real ni cuenta de Google
+  disponible): la cookie de sesión emitida tiene vencimiento propio (no es
+  "de navegador"), sobrevive un restart del proceso simulado (misma
+  `SECRET_KEY`, dos instancias de la app arrancadas por separado), una
+  sesión vencida obliga a re-loguear, y la URL de autorización generada
+  ya no lleva `prompt` ni `access_type=offline`.
+- **No probado, pendiente de confirmación real por el CEO** (mismo tipo de
+  límite que el rediseño de guardado, no hay Chromium/Playwright ni login
+  real de Google en este entorno): que Google efectivamente omite la
+  pantalla de permisos y el mail en un segundo login real con una cuenta
+  que ya autorizó antes, comportamiento en producción (Render) tras un
+  redeploy real, y la PWA instalada en el celular real (el escenario
+  original del reporte). Detalle completo en
+  `docs/decisions/0012-sesion-90-dias-oauth-sin-reconsentimiento.md`.
 
 ## Current phase
 Phase 1 en producción (`https://facturas-saas.onrender.com`), planilla v2
@@ -425,3 +468,13 @@ auditoría hecha, 3 textos corregidos.
 - 2026-07-14: ADR-0009 (repo general) — Regla 2 aclarada: no prohíbe el
   ":" en todo texto visible, aplica a párrafos/textos corridos; queda como
   criterio, no como regla mecánica. Ante la duda, consultar al CEO.
+- 2026-07-15: ADR-0012 (repo general, handoff del CEO) — sesión de Flask
+  permanente (90 días de inactividad, renovable) +
+  `SESSION_REFRESH_EACH_REQUEST` + cookie con `HttpOnly`/`SameSite=Lax`/
+  `Secure` en producción; se saca `prompt="consent"` del login de Google y
+  se fuerza `access_type="online"` explícito (la librería lo ponía en
+  "offline" por default). Resuelve el reporte del CEO desde el celular:
+  re-login, pantalla de permisos y mail de Google repetidos en cada
+  visita. `SECRET_KEY` en Render confirmado estable entre deploys (no
+  hizo falta cambiarlo). Pendiente de confirmación real (Google, Render,
+  celular con PWA instalada) — ver detalle en el ADR.
