@@ -139,19 +139,32 @@ pago de Render por ahora (decisión del CEO). Implementado:
 - Endpoint `GET /health` (`app/blueprints/api.py`) — respuesta estática
   `{"status": "ok"}`, sin DB/Sheets/Gemini, sin auth, sin afectar el
   conteo de facturas.
-- `.github/workflows/keep-alive.yml` — cron cada 14 minutos 24/7 (más
-  `workflow_dispatch` para probarlo a mano) que le pega a `/health` en
-  producción, sin fallar el workflow ante un timeout puntual.
+- `.github/workflows/keep-alive.yml` — cron (más `workflow_dispatch` para
+  probarlo a mano) que le pega a `/health` en producción.
 - **Probado en este entorno**: `/health` responde 200 instantáneo en
   local (Flask test client).
-- **No probado, pendiente de confirmación real por el CEO** (requiere
-  acceso a producción y a GitHub Actions del repo, fuera de este
-  entorno): `/health` en producción, el workflow disparado a mano
-  (`workflow_dispatch`) contra producción, y que tras ~1 hora con el cron
-  activo la app responda rápido sin cold start a un request real.
-  Complementa, no reemplaza, al ADR-0005 (pantalla de espera), que sigue
-  pendiente de esas mismas confirmaciones reales. Detalle completo en
-  `docs/decisions/0013-keep-alive-render-free.md`.
+
+**No cumplía su función — diagnosticado y ajustado el mismo día
+(Issue #007, handoff del CEO)**: el CEO confirmó con un log de Render que
+la app se durmió a las ~10:06 hora Argentina pese al keep-alive recién
+implementado. Diagnóstico vía `gh` CLI contra la API de Actions: el
+workflow estaba bien configurado (activo, rama default, sin errores),
+pero **GitHub Actions no ejecuta el trigger `schedule` con precisión para
+crons sub-horarios** — gaps reales observados de ~100 minutos con
+`*/14 * * * *` (7 veces más lento que lo pedido), y el incidente reportado
+cayó justo en uno de esos huecos. `/health` en sí respondía bien — no era
+el endpoint. Causa raíz de la plataforma (GitHub), no de nuestra
+configuración. Fix aplicado: cron bajado a `*/10 * * * *` (decisión del
+CEO) + `--fail` agregado al `curl` (sin ese flag una respuesta HTTP de
+error no hacía fallar el paso). **Riesgo señalado, no resuelto con
+garantía**: como la causa de fondo es la imprecisión de GitHub para
+crons frecuentes, `*/10` reduce el riesgo pero no lo elimina — si los
+gaps reales siguen superando ~15 min, hace falta una alternativa
+(servicio externo de pings, plan pago de Render), decisión del CEO.
+Pendiente: verificar los gaps reales de las próximas horas. Detalle
+completo en `docs/decisions/0013-keep-alive-render-free.md` e
+[Issue #007](ISSUES.md).
+Complementa, no reemplaza, al ADR-0005 (pantalla de espera).
 
 ## Current phase
 Phase 1 en producción (`https://facturas-saas.onrender.com`), planilla v2
@@ -601,3 +614,10 @@ auditoría hecha, 3 textos corregidos.
   `.github/workflows/keep-alive.yml` con cron cada 14 minutos 24/7.
   Complementa (no reemplaza) el ADR-0005. Probado `/health` en local;
   pendiente de confirmación real en producción y GitHub Actions.
+- 2026-07-16: Issue #007 (handoff del CEO, diagnóstico) — el keep-alive
+  no cumplía su función: GitHub Actions no ejecuta `schedule` con
+  precisión para crons sub-horarios (gaps reales de ~100 min con `*/14`,
+  confirmado vía `gh run list`). Causa de la plataforma, no de
+  configuración. Fix: cron a `*/10` (decisión del CEO) + `--fail` al
+  curl. Riesgo señalado sin resolver con garantía — si los gaps siguen
+  superando ~15 min, hace falta una alternativa (decisión del CEO).

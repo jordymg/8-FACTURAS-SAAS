@@ -1,7 +1,9 @@
 # ADR-0013: Keep-alive para Render free tier vía GitHub Actions
 
 **Date:** 2026-07-16
-**Status:** ADOPTADA e IMPLEMENTADA
+**Status:** ADOPTADA e IMPLEMENTADA — ajustada el mismo día (ver
+"Corrección 2026-07-16" al final) tras confirmarse que no cumplía su
+función. Ver también [Issue #007](../ISSUES.md).
 
 ## Contexto
 Render free tier duerme el servicio tras ~15 minutos sin tráfico entrante;
@@ -58,3 +60,54 @@ independencia de proveedor (tema aparte, no resuelto en este ADR).
   cron activo la app responda rápido a un request real sin cold start —
   requiere acceso a producción y a Actions del repo en GitHub, fuera de
   este entorno.
+
+## Corrección 2026-07-16: el keep-alive no cumplía su función
+
+El CEO confirmó con un log de Render que la app estaba dormida a las
+~10:06 hora Argentina (13:06 UTC) y despertó por un request manual suyo —
+el keep-alive no la mantuvo despierta. Diagnóstico (vía `gh` CLI contra la
+API de Actions del repo):
+
+- El workflow estaba activo, en la rama default (`master`), sin errores —
+  no era un problema de configuración/deshabilitado/rama equivocada.
+- Solo tenía 2 ejecuciones desde que se pusheó esa misma mañana. Horarios
+  reales: push a las 10:16:50 UTC, Run 1 a las 11:56:49 UTC (**99
+  minutos** después, no ~14), Run 2 a las 13:40:23 UTC (**103 minutos**
+  después del Run 1).
+- El incidente reportado (13:06 UTC) cae exactamente en ese hueco de 103
+  minutos entre Run 1 y Run 2.
+- `/health` respondía 200 correctamente al probarlo a mano — el endpoint
+  en sí nunca fue el problema.
+
+**Causa raíz confirmada:** el trigger `schedule` de GitHub Actions no
+ejecuta con la precisión configurada para crons sub-horarios — es un
+comportamiento conocido/documentado de la plataforma (los runs
+programados pueden demorarse, sobre todo en horarios de carga, y más
+todavía en repos con poca actividad de Actions), no un error de nuestra
+configuración. El intervalo real observado (~100 min) fue ~7 veces más
+lento que el `*/14` pedido.
+
+**Fix aplicado:**
+- Cron bajado a `*/10 * * * *` — decisión del CEO, ya tomada de antemano
+  como parte de este fix independientemente del diagnóstico (el repo es
+  público, minutos de Actions ilimitados y gratis, sin costo por bajar el
+  intervalo). **Importante:** dado que la causa raíz es la imprecisión de
+  GitHub para crons sub-horarios (no el valor del intervalo en sí), `*/10`
+  reduce el riesgo pero **no lo elimina** — si GitHub sigue demorando
+  ejecuciones por encima del margen de sueño de Render (~15 min), este
+  ajuste solo no alcanza.
+- Se agrega `--fail` al `curl` — sin este flag, una respuesta HTTP de
+  error (4xx/5xx) no hace fallar el paso (curl solo falla por defecto ante
+  errores de transporte, no de protocolo), y combinado con el `|| true` ya
+  existente el workflow quedaría en verde igual. No fue la causa de este
+  incidente puntual (los pings sí devolvieron 200), pero es un hueco real
+  que se cierra de paso.
+
+**Pendiente de verificación real:** los gaps efectivos entre pings de las
+próximas horas (vía `gh run list --workflow keep-alive.yml`), y si la app
+deja de aparecer dormida en los logs de Render. **Riesgo señalado, no
+resuelto:** si tras este ajuste los gaps siguen superando ~15 minutos en
+algún momento, la causa de fondo (crons sub-horarios de GitHub Actions no
+son confiables) sigue vigente y hay que evaluar una alternativa distinta
+(servicio externo de pings, plan pago de Render) — decisión del CEO, no
+implementada acá.

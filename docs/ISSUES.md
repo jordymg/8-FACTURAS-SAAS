@@ -224,3 +224,37 @@ esta cuota específica ya no aplica en la práctica (nunca se crea más de
 una pestaña por llamada), pero el mecanismo en lotes se mantuvo en
 `crear_pestanas()` por si hiciera falta en el futuro, y esta nota queda
 como registro de que el límite existe y hay que tenerlo presente.
+
+---
+
+## #007 — Keep-alive de Render no cumplía su función: GitHub Actions no ejecuta crons sub-horarios con precisión
+**Área:** infraestructura — [ADR-0013](decisions/0013-keep-alive-render-free.md)
+**Fecha:** 2026-07-16
+**Síntoma:** el CEO confirmó con un log de Render que la app estaba
+dormida a las ~10:06 hora Argentina y despertó por un request manual
+suyo — el cron de keep-alive (`*/14 * * * *`, recién implementado esa
+misma mañana) no la mantuvo despierta.
+
+**Causa raíz:** el trigger `schedule` de GitHub Actions no ejecuta con la
+precisión configurada para crons sub-horarios — comportamiento
+conocido/documentado de la plataforma, no un error de nuestra
+configuración (el workflow estaba activo, en la rama default, sin
+errores). Confirmado con el historial real de ejecuciones vía `gh run
+list`: solo 2 runs desde el push, con un gap de 99 min entre el push y el
+primer run, y de 103 min entre el primero y el segundo — ~7 veces más
+lento que el `*/14` pedido. El incidente reportado cayó exactamente en
+ese hueco. No es exclusivo de este repo — cualquier cron sub-horario de
+GitHub Actions puede sufrir el mismo retraso, más aún en repos con poca
+actividad de Actions.
+
+**Fix:** cron bajado a `*/10 * * * *` (decisión del CEO) + `--fail`
+agregado al `curl` del workflow (sin ese flag, una respuesta HTTP de
+error no hacía fallar el paso, quedaba en verde igual por el `|| true`
+existente — no fue la causa de este incidente puntual, pero era un hueco
+real). Detalle completo en el ADR-0013.
+
+**Estado:** ⚠️ mitigado, no resuelto con garantía — la causa de fondo
+(GitHub Actions no es confiable para crons sub-horarios) sigue vigente;
+`*/10` reduce el riesgo pero no lo elimina. Pendiente: verificar los gaps
+reales de las próximas horas. Si se repite, evaluar alternativa (servicio
+externo de pings, plan pago de Render) — decisión del CEO.
