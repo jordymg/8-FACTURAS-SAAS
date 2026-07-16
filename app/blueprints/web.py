@@ -8,6 +8,7 @@ from app.services import sheets
 from app.services.fields import FIELDS
 from app.services.consejos_revision import get_consejos_revision
 from app.services.limites import LIMITE_MENSUAL, UMBRAL_AVISO, facturas_del_mes
+from app.services.mensajes_espera import get_mensajes_espera
 from app.services.tips import get_tips
 
 web_bp = Blueprint("web", __name__)
@@ -44,6 +45,7 @@ def app_view():
         campos_json=json.dumps(FIELDS, ensure_ascii=False),
         tips_json=json.dumps(get_tips(), ensure_ascii=False),
         consejos_revision_json=json.dumps(get_consejos_revision(), ensure_ascii=False),
+        mensajes_espera_json=json.dumps(get_mensajes_espera(), ensure_ascii=False),
         facturas_mes=facturas_del_mes(user), umbral_aviso=UMBRAL_AVISO, limite_mensual=LIMITE_MENSUAL,
     )
 

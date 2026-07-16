@@ -199,6 +199,47 @@ body {
 .tip-rotativo.tip-oculto { opacity: 0; }
 .tip-rotativo.hidden { display: none; }
 
+/* ── Overlay de espera (ADR-0005 general) ────────────────
+   Cubre cold start de Render y el tiempo de extracción (reintentos
+   automáticos ante 503 de Gemini incluidos, invisibles para el
+   usuario) — tapa cualquier .screen, arriba del header sticky
+   (z-index 10). Reutiliza .tip-card/.tip-icono/.tip-rotativo tal cual
+   para el mensaje rotativo. */
+.overlay-espera {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(249, 250, 251, .96);
+}
+.overlay-espera.hidden { display: none; }
+
+.overlay-espera-contenido {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 420px;
+}
+.overlay-espera-contenido .tip-card { width: 100%; margin: 0; }
+.overlay-espera-contenido .tip-rotativo { text-align: center; }
+
+.spinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 3px solid var(--gray-200);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: girar .8s linear infinite;
+}
+@keyframes girar {
+  to { transform: rotate(360deg); }
+}
+
 /* ── Capture screen ───────────────────────────────────── */
 .capture-area {
   display: flex;

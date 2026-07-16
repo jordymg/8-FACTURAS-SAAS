@@ -1,0 +1,20 @@
+# Mensajes que se muestran rotando en la pantalla de espera (cold start
+# de Render y reintentos automáticos ante 503 de Gemini, ADR-0005
+# general). Para editar: agregá, sacá o cambiá una línea y guardá el
+# archivo — el deploy es automático (push a git), no hace falta tocar
+# código. Un mensaje por línea. Las líneas vacías o que empiecen con #
+# (como esta) se ignoran. Si el archivo queda vacío, la pantalla de
+# espera simplemente no muestra el carrusel — no rompe nada.
+# Nota: esta pantalla también se cachea de forma estática en
+# static/espera.html para el caso de cold start (el service worker la
+# sirve antes de que el backend responda) — esos 6 mensajes están
+# duplicados a mano ahí porque ese archivo no puede leer este .txt en
+# tiempo de carga. Si cambiás estos textos, actualizá también
+# static/espera.html a mano.
+
+Estamos preparando todo. En unos segundos arrancamos.
+Sacale la foto a la factura con buena luz y que se lean todos los datos. Mejor foto, mejores resultados.
+Cada factura que cargás se guarda como una fila nueva en tu propia planilla de Google.
+Tu planilla es tuya. Podés abrirla, editarla y compartirla con tu contador cuando quieras.
+Podés subir varias fotos juntas. Las revisás una por una y las guardás todas de un solo toque.
+Leemos los datos de tu factura y te los mostramos para que los revises antes de guardar.

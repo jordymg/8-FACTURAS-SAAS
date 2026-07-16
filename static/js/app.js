@@ -10,7 +10,10 @@
 
   const zona = document.getElementById("zona");
   const inputArchivos = document.getElementById("input-archivos");
-  const cargandoEl = document.getElementById("cargando");
+  // Overlay de espera (ADR-0005 general) — cubre cold start y extracción
+  // (reintentos automáticos ante 503 incluidos, invisibles para el
+  // usuario). Reemplaza al viejo banner de texto #cargando.
+  const overlayEsperaEl = document.getElementById("overlay-espera");
   const cardsEl = document.getElementById("cards");
   const btnGuardarLote = document.getElementById("btn-guardar-lote");
   const exitoTextoEl = document.getElementById("exito-texto");
@@ -65,7 +68,7 @@
   // ── Procesar con IA ────────────────────────────────────
   async function procesar(lista) {
     bloquearZona(true);
-    cargandoEl.classList.remove("hidden");
+    overlayEsperaEl.classList.remove("hidden");
     const form = new FormData();
     lista.forEach((f) => form.append("archivos", f));
 
@@ -74,13 +77,13 @@
       const resp = await fetch("/api/extract", { method: "POST", body: form });
       resultados = await resp.json();
     } catch (e) {
-      cargandoEl.classList.add("hidden");
+      overlayEsperaEl.classList.add("hidden");
       bloquearZona(false);
       alert("Error de red. Revisá tu conexión.");
       return;
     }
 
-    cargandoEl.classList.add("hidden");
+    overlayEsperaEl.classList.add("hidden");
     bloquearZona(false);
     showScreen("screen-review");
     cardsEl.innerHTML = "";
@@ -470,4 +473,5 @@
 
   iniciarCarruselRotativo("tip-rotativo", window.__TIPS__ || []);
   iniciarCarruselRotativo("consejo-revision-rotativo", window.__CONSEJOS_REVISION__ || []);
+  iniciarCarruselRotativo("mensaje-espera-rotativo", window.__MENSAJES_ESPERA__ || []);
 })();

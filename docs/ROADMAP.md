@@ -33,12 +33,16 @@ antes de vender:
       soporte), qué datos procesa la app, no-persistencia de imágenes,
       límites de responsabilidad. No busca ser exhaustivo legalmente
       todavía.
-- [ ] **Reintentos automáticos ante 503 de Gemini** — HACER ANTES DE
-      VENDER. UX: el reintento es invisible — no se muestra "error,
-      reintentando", se muestra la pantalla de espera con el carrusel de
-      tips (mismo mecanismo del cold start, ver
-      `docs/decisions/0005-pantalla-espera-cold-start.md`). Solo si se
-      agotan los reintentos, mensaje de error amigable.
+- [x] **Reintentos automáticos ante 503 de Gemini** — implementado
+      2026-07-15 (handoff del CEO, tras sufrir un 503 real). 3 reintentos
+      con backoff 2/4/8s (`app/services/gemini.py`), invisibles vía la
+      pantalla de espera con carrusel (`docs/decisions/0005-pantalla-espera-cold-start.md`,
+      ahora implementada). Mensaje de error amigable + reintento manual
+      solo si se agotan los 3 reintentos. **Hallazgo pendiente de
+      decisión del CEO** (no resuelto en esta sesión): el timeout default
+      de gunicorn en Render (30s, sin override) podría no alcanzar en el
+      peor caso (varios archivos de una tanda golpeando 503 a la vez) —
+      ver el ADR-0005 para el detalle y la recomendación.
 - [ ] **Onboarding de configuración de planilla** — el foco NO es un
       carrusel genérico de primera apertura, es el paso donde un usuario
       nuevo se puede caer: crear la planilla, compartirla con el mail de la

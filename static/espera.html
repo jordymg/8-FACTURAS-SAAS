@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Facturas</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+  <div class="overlay-espera">
+    <div class="overlay-espera-contenido">
+      <div class="spinner" aria-hidden="true"></div>
+      <div class="tip-card">
+        <svg class="tip-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 18h6"/>
+          <path d="M10 22h4"/>
+          <path d="M12 2a7 7 0 0 0-4 12.75V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.25A7 7 0 0 0 12 2Z"/>
+        </svg>
+        <p id="mensaje-espera-rotativo" class="tip-rotativo hidden"></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Copia estática de strings/mensajes-espera.txt — este archivo es un
+    // shell cacheado por el service worker (static/sw.js) y se sirve
+    // antes de que el backend responda (cold start de Render, ADR-0005
+    // general), así que no puede leer ese .txt en tiempo de carga. Si
+    // cambiás esos textos, actualizá también esta lista a mano.
+    window.__MENSAJES_ESPERA__ = [
+      "Estamos preparando todo. En unos segundos arrancamos.",
+      "Sacale la foto a la factura con buena luz y que se lean todos los datos. Mejor foto, mejores resultados.",
+      "Cada factura que cargás se guarda como una fila nueva en tu propia planilla de Google.",
+      "Tu planilla es tuya. Podés abrirla, editarla y compartirla con tu contador cuando quieras.",
+      "Podés subir varias fotos juntas. Las revisás una por una y las guardás todas de un solo toque.",
+      "Leemos los datos de tu factura y te los mostramos para que los revises antes de guardar."
+    ];
+  </script>
+  <!-- Reusa static/js/app.js (ya cacheado) solo por iniciarCarruselRotativo
+       — el resto del archivo no hace nada acá porque los ids que busca
+       (zona, input-archivos, cards, etc.) no existen en este shell. -->
+  <script src="/static/js/app.js"></script>
+  <script>
+    // Cold start de Render: reintenta cada ~2.5s hasta que el backend
+    // responda, y recién ahí recarga la página real — este shell es solo
+    // la espera, nunca la app en sí.
+    (function poll() {
+      const controlador = new AbortController();
+      const timeoutId = setTimeout(() => controlador.abort(), 5000);
+      fetch(location.href, { cache: "no-store", redirect: "manual", signal: controlador.signal })
+        .then(() => { clearTimeout(timeoutId); location.reload(); })
+        .catch(() => { clearTimeout(timeoutId); setTimeout(poll, 2500); });
+    })();
+  </script>
+</body>
+</html>

@@ -34,8 +34,6 @@
       <input type="file" id="input-archivos" multiple accept="image/jpeg,image/png,image/webp,application/pdf" hidden>
     </label>
 
-    <p id="cargando" class="status-msg hidden">Extrayendo los datos de tu factura, puede tardar unos segundos…</p>
-
     <div class="tip-card">
       <svg class="tip-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M9 18h6"/>
@@ -75,11 +73,32 @@
   <p id="exito-texto" class="exito-texto hidden"></p>
 </main>
 
+<!-- Overlay de espera (ADR-0005 general) — cubre tanto el cold start de
+     Render (mostrado por static/espera.html vía service worker antes de
+     que este HTML llegue a cargar) como el tiempo de extracción normal,
+     reintentos automáticos ante 503 de Gemini incluidos: el usuario ve
+     siempre esta misma pantalla, sin distinción. Vive fuera del sistema
+     de .screen porque tiene que poder taparlas a todas. -->
+<div id="overlay-espera" class="overlay-espera hidden">
+  <div class="overlay-espera-contenido">
+    <div class="spinner" aria-hidden="true"></div>
+    <div class="tip-card">
+      <svg class="tip-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M9 18h6"/>
+        <path d="M10 22h4"/>
+        <path d="M12 2a7 7 0 0 0-4 12.75V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.25A7 7 0 0 0 12 2Z"/>
+      </svg>
+      <p id="mensaje-espera-rotativo" class="tip-rotativo hidden"></p>
+    </div>
+  </div>
+</div>
+
 <script>
   window.__STRINGS__ = {{ strings | tojson }};
   window.__CAMPOS__ = {{ campos_json | safe }};
   window.__TIPS__ = {{ tips_json | safe }};
   window.__CONSEJOS_REVISION__ = {{ consejos_revision_json | safe }};
+  window.__MENSAJES_ESPERA__ = {{ mensajes_espera_json | safe }};
 </script>
 <script src="{{ url_for('static', filename='js/app.js') }}?v={{ asset_version('js/app.js') }}"></script>
 <script>

@@ -1,11 +1,44 @@
 import json
 import os
+import time
 from typing import Optional
 
 from google import genai
+from google.genai import errors as genai_errors
 from google.genai import types
 
 from app.services.fields import FIELDS, FIELD_KEYS
+
+# Reintentos ante 503 de Gemini (alta demanda) — ADR-0005 general. Solo se
+# reintentan errores transitorios de servidor (genai_errors.ServerError,
+# 5xx); errores de cliente (imagen inválida, API key, etc.) propagan
+# directo, sin reintento.
+MAX_REINTENTOS_503 = 3
+BACKOFF_SEG = [2, 4, 8]  # espera creciente entre intentos, ~15s peor caso
+MENSAJE_ERROR_FINAL = (
+    "No pudimos procesar tu factura en este momento. Esperá unos minutos y "
+    "volvé a intentar. La foto no se perdió, solo tocá reintentar."
+)
+
+
+class GeminiSobrecargadoError(Exception):
+    """Se agotaron los MAX_REINTENTOS_503 reintentos ante un 503 (alta
+    demanda) de Gemini — el mensaje ya es el texto listo para el usuario
+    (ver MENSAJE_ERROR_FINAL), app/blueprints/api.py lo muestra tal cual
+    vía str(e), sin necesitar saber nada de reintentos."""
+
+
+def _generate_content_con_reintentos(client: genai.Client, **kwargs):
+    intentos_fallidos = 0
+    while True:
+        try:
+            return client.models.generate_content(**kwargs)
+        except genai_errors.ServerError:
+            if intentos_fallidos >= MAX_REINTENTOS_503:
+                raise GeminiSobrecargadoError(MENSAJE_ERROR_FINAL) from None
+            time.sleep(BACKOFF_SEG[intentos_fallidos])
+            intentos_fallidos += 1
+
 
 _PROMPT = (
     "Sos un asistente que extrae datos de comprobantes argentinos (facturas y presupuestos "
@@ -37,7 +70,8 @@ _PROMPT = (
 def extract_invoice(image_bytes: bytes, mime_type: str = "image/jpeg") -> Optional[dict]:
     client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
     model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-    response = client.models.generate_content(
+    response = _generate_content_con_reintentos(
+        client,
         model=model,
         contents=[
             types.Part.from_bytes(data=image_bytes, mime_type=mime_type),

@@ -103,6 +103,32 @@ confirmación en celular real. Detalle completo en
 `docs/areas/app/decisions/0007-carrusel-consejos-revision.md` y
 `docs/areas/app/STATUS.md`.
 
+**ADR-0005 implementado: pantalla de espera + reintentos ante 503 de
+Gemini (handoff del CEO, 2026-07-15, tras sufrir un 503 real)**:
+- Backend (`app/services/gemini.py`): 3 reintentos con backoff 2/4/8s
+  ante `ServerError` (5xx) de Gemini, ~14s de sleep en el peor caso;
+  otros errores (`ClientError` 4xx) no se reintentan. Al agotar los
+  reintentos, mensaje de error EXACTO aprobado ("No pudimos procesar tu
+  factura en este momento..."), sin cambios necesarios en `api.py`.
+- Frontend: overlay de espera nuevo (`#overlay-espera`, spinner +
+  tarjeta reutilizando `.tip-card`/`.tip-icono`/`.tip-rotativo` tal
+  cual) reemplaza al viejo banner `#cargando`, visible durante toda la
+  extracción — reintentos automáticos invisibles para el usuario.
+  **Tercer carrusel independiente** (`strings/mensajes-espera.txt`, 6
+  textos exactos) reutilizando `iniciarCarruselRotativo`. El botón de
+  reintento manual ya existente (`.btn-reintentar-ia`) ya retenía la
+  foto — no necesitó cambios.
+- Service worker (`static/sw.js`): ahora cachea el app shell completo
+  (`app.css`, `app.js`, `static/espera.html` nuevo) y sirve ese shell
+  ante una navegación lenta/caída (carrera de 3s), para cubrir el cold
+  start de Render.
+- **Hallazgo reportado, no resuelto** (pedido explícito del handoff): el
+  timeout default de gunicorn (30s, sin override en `render.yaml`) podría
+  no alcanzar en el peor caso de una tanda con varios archivos golpeando
+  503 a la vez — no se tocó la infraestructura, queda pendiente de
+  decisión del CEO. Detalle completo, con lo probado y lo no probado, en
+  `docs/decisions/0005-pantalla-espera-cold-start.md`.
+
 ## Current phase
 Phase 1 en producción (`https://facturas-saas.onrender.com`), planilla v2
 (23 columnas) confirmada con datos reales. **Re-priorizado el camino a
@@ -514,6 +540,19 @@ auditoría hecha, 3 textos corregidos.
   tarjetas, desktop y mobile: sin overflow, ambos carruseles rotan
   independiente, tip de home intacto. Pendiente confirmación en celular
   real.
+- 2026-07-15: ADR-0005 (repo general, handoff del CEO tras un 503 real)
+  — implementado de punta a punta: reintentos 3×2/4/8s ante 503 de Gemini
+  (`app/services/gemini.py`, `GeminiSobrecargadoError` con el mensaje
+  final exacto), overlay de espera con spinner + tercer carrusel
+  (`strings/mensajes-espera.txt`) reemplazando `#cargando`, service
+  worker cacheando el app shell completo (`static/espera.html` nuevo)
+  para el cold start. Probado contra un servidor Flask real con
+  Playwright: reintentos mockeados, overlay, mensaje de error exacto,
+  reintento manual, 3 carruseles independientes, y el fallback del
+  service worker ante una navegación lenta. **Hallazgo reportado sin
+  resolver**: el timeout default de gunicorn (30s) podría no alcanzar en
+  el peor caso de una tanda con varios 503 — pendiente de decisión del
+  CEO, no se tocó `render.yaml`.
 - 2026-07-15: ADR-0012 (repo general, handoff del CEO) — sesión de Flask
   permanente (90 días de inactividad, renovable) +
   `SESSION_REFRESH_EACH_REQUEST` + cookie con `HttpOnly`/`SameSite=Lax`/

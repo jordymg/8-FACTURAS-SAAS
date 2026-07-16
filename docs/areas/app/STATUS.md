@@ -209,13 +209,20 @@ independiente (confirmado que cambian de texto por separado tras >9s), y
 el tip de home sigue intacto. **No probado en celular real** — ver
 detalle completo en el ADR.
 
+**Pantalla de espera / cold start —
+[`docs/decisions/0005-pantalla-espera-cold-start.md`](../../decisions/0005-pantalla-espera-cold-start.md)
+(repo general) — IMPLEMENTADA (2026-07-15, handoff del CEO)**: un tercer
+overlay/carrusel se suma a los otros dos de esta área, reutilizando
+`.tip-card`/`.tip-icono`/`.tip-rotativo` tal cual, sin CSS nuevo para el
+mensaje (solo se agregó `.overlay-espera`/`.spinner`, que no existían).
+Cubre tanto el cold start de Render (vía `static/espera.html`, cacheado
+por el service worker) como los reintentos automáticos ante 503 de Gemini
+(invisibles para el usuario) — mismo mecanismo, misma pantalla. Detalle
+técnico completo (backend, frontend, service worker, pruebas, y un
+hallazgo sobre el timeout de gunicorn reportado sin resolver) en el ADR.
+
 Decisiones de diseño adoptadas en **otras** áreas que esta tiene que
 reflejar cuando se implementen:
-- Pantalla de espera / cold start —
-  [`docs/decisions/0005-pantalla-espera-cold-start.md`](../../decisions/0005-pantalla-espera-cold-start.md)
-  (repo general). Ahora **prioridad alta pre-lanzamiento**: también
-  enmascara los reintentos automáticos ante 503 de Gemini (ver
-  `docs/ROADMAP.md`).
 - Aviso de duplicado detectado —
   [`docs/areas/planillas/decisions/0009-ux-duplicados.md`](../planillas/decisions/0009-ux-duplicados.md)
   (área planillas) — **ya implementado y confirmado en producción**.
