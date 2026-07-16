@@ -1,0 +1,16 @@
+name: Keep-alive
+
+# Render free tier duerme el servicio tras ~15 min sin tráfico entrante
+# (cold start ~30s). Este cron le pega a /health cada 14 minutos para que
+# nunca llegue a dormirse. Ver docs/decisions/0013-keep-alive-render-free.md.
+on:
+  schedule:
+    - cron: "*/14 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /health
+        run: curl --max-time 60 https://facturas-saas.onrender.com/health || true

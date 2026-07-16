@@ -132,6 +132,27 @@ Gemini (handoff del CEO, 2026-07-15, tras sufrir un 503 real)**:
   decisión del CEO. Detalle completo, con lo probado y lo no probado, en
   `docs/decisions/0005-pantalla-espera-cold-start.md`.
 
+**Keep-alive para Render free tier (ADR-0013 repo general, handoff del CEO,
+2026-07-16)**: Render free duerme el servicio tras ~15 min sin tráfico
+entrante (cold start ~30s, inaceptable para clientes). Se descarta el plan
+pago de Render por ahora (decisión del CEO). Implementado:
+- Endpoint `GET /health` (`app/blueprints/api.py`) — respuesta estática
+  `{"status": "ok"}`, sin DB/Sheets/Gemini, sin auth, sin afectar el
+  conteo de facturas.
+- `.github/workflows/keep-alive.yml` — cron cada 14 minutos 24/7 (más
+  `workflow_dispatch` para probarlo a mano) que le pega a `/health` en
+  producción, sin fallar el workflow ante un timeout puntual.
+- **Probado en este entorno**: `/health` responde 200 instantáneo en
+  local (Flask test client).
+- **No probado, pendiente de confirmación real por el CEO** (requiere
+  acceso a producción y a GitHub Actions del repo, fuera de este
+  entorno): `/health` en producción, el workflow disparado a mano
+  (`workflow_dispatch`) contra producción, y que tras ~1 hora con el cron
+  activo la app responda rápido sin cold start a un request real.
+  Complementa, no reemplaza, al ADR-0005 (pantalla de espera), que sigue
+  pendiente de esas mismas confirmaciones reales. Detalle completo en
+  `docs/decisions/0013-keep-alive-render-free.md`.
+
 ## Current phase
 Phase 1 en producción (`https://facturas-saas.onrender.com`), planilla v2
 (23 columnas) confirmada con datos reales. **Re-priorizado el camino a
@@ -575,3 +596,8 @@ auditoría hecha, 3 textos corregidos.
   visita. `SECRET_KEY` en Render confirmado estable entre deploys (no
   hizo falta cambiarlo). Pendiente de confirmación real (Google, Render,
   celular con PWA instalada) — ver detalle en el ADR.
+- 2026-07-16: ADR-0013 (repo general, handoff del CEO) — keep-alive para
+  Render free tier: endpoint `GET /health` estático +
+  `.github/workflows/keep-alive.yml` con cron cada 14 minutos 24/7.
+  Complementa (no reemplaza) el ADR-0005. Probado `/health` en local;
+  pendiente de confirmación real en producción y GitHub Actions.

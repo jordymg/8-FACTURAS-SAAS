@@ -18,6 +18,14 @@ def _current_user() -> User | None:
     return db.session.get(User, user_id) if user_id else None
 
 
+@api_bp.route("/health", methods=["GET"])
+def health():
+    # Respuesta estática e instantánea, sin DB/Sheets/Gemini — el único
+    # propósito es que Render vea tráfico entrante (ver ADR-0013,
+    # keep-alive vía GitHub Actions cron).
+    return jsonify({"status": "ok"})
+
+
 @api_bp.route("/api/sheet/connect", methods=["POST"])
 def connect_sheet():
     user = _current_user()
