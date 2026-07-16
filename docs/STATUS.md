@@ -10,6 +10,9 @@
 - **Duración de la sesión**: `SESSION_LIFETIME_DIAS` (90 días de
   inactividad, renovable) en `app/__init__.py`. Detalle en
   `docs/decisions/0012-sesion-90-dias-oauth-sin-reconsentimiento.md`.
+- **Reintentos ante 503 de Gemini**: `MAX_REINTENTOS_503` y
+  `BACKOFF_SEG` en `app/services/gemini.py`. Detalle en
+  `docs/decisions/0005-pantalla-espera-cold-start.md`.
 - **Server local: puerto 5050, no 5000** — el redirect_uri de OAuth
   registrado en Google Cloud Console es `http://localhost:5050/oauth2callback`
   (descubierto el 2026-07-12 tras un rato de debug). Levantar con
@@ -255,17 +258,15 @@ auditoría hecha, 3 textos corregidos.
   coincidencia, también contra otras fotos de la misma tanda. **Confirmado
   funcionando en producción por el founder** (factura en negro sin CUIT
   repetida, ya se detecta bien).
-- **Documentado, sin implementar** (queda para cuando se priorice):
-  - `docs/decisions/0005-pantalla-espera-cold-start.md` (repo general, no
-    confundir con el ADR-0005 del área Planillas): pantalla propia con
-    carrusel de mensajes mientras Render despierta del cold start,
-    complementaria al upgrade de plan pago (ADR-0001).
-  - `docs/ROADMAP.md`: reintentos automáticos ante 503 de Gemini + mensaje
-    de error amigable, marcado prioridad alta pre-lanzamiento (Fase 2); y
-    política de acceso de soporte (la Service Account ya tiene acceso
-    Editor a las planillas — reflejarlo en los términos de uso antes de
-    lanzar, Fase 3), con la idea de una vista de solo-lectura como
-    alternativa post-MVP anotada en el icebox.
+- **Pantalla de espera + reintentos ante 503 de Gemini — IMPLEMENTADO
+  el 2026-07-15** (`docs/decisions/0005-pantalla-espera-cold-start.md`,
+  repo general, no confundir con el ADR-0005 del área Planillas): ver
+  "ADR-0005 implementado" más arriba, primer bloque de esta sesión, para
+  el detalle completo. Sigue documentado pero sin implementar: política de
+  acceso de soporte (la Service Account ya tiene acceso Editor a las
+  planillas — reflejarlo en los términos de uso antes de lanzar, Fase 3),
+  con la idea de una vista de solo-lectura como alternativa post-MVP
+  anotada en el icebox.
 - **Organigrama de la empresa** (`docs/ORGANIGRAMA.md`, ADR-0006 repo
   general): roles se crean con cada área nueva, no todos de entrada. CEO
   (Jordi) dirige sin ejecutar. CPO (Claude) es el encargado de las áreas App
@@ -287,7 +288,8 @@ auditoría hecha, 3 textos corregidos.
 - **Pantalla de espera (ADR-0005 repo general) ampliada**: además del cold
   start de Render, ahora también enmascara los reintentos automáticos ante
   un 503 de Gemini — el usuario nunca ve "reintentando", ve el carrusel de
-  tips. Pasa a prioridad alta pre-lanzamiento. No implementado todavía.
+  tips. **Implementado el 2026-07-15** (ver el bloque al principio de esta
+  sesión).
 - **Onboarding, foco redefinido** (`docs/areas/app/PRODUCTO.md`): no es un
   carrusel genérico, es el paso crítico de configurar la planilla (crearla,
   compartir con la SA, pegar la URL) — tiene que ser "a prueba de tontos".
@@ -316,33 +318,43 @@ auditoría hecha, 3 textos corregidos.
    Qué se necesita: redactarlo — es el único punto 100% pendiente de
    arrancar.
 
-2. **Reintentos automáticos ante 503 de Gemini, con espera invisible.**
-   Qué: reintentar solo, mostrando la pantalla de espera con carrusel
-   (ADR-0005 repo general) en vez de un mensaje de error — recién si se
-   agotan los reintentos, error amigable.
-   Dónde: `app/services/gemini.py` (backend) + `static/js/app.js`,
-   `templates/app.html` (frontend, ver ADR-0005).
-   Qué se necesita: implementar — documentado, no hecho.
-
-3. **Onboarding de configuración de planilla.**
+2. **Onboarding de configuración de planilla.**
    Qué: guiar "a prueba de tontos" el paso de crear la planilla, compartirla
    con la SA, y pegar la URL.
    Dónde: `docs/areas/app/` — necesita antes una conversación de diseño
    dedicada para los textos/pasos concretos.
    Qué se necesita: esa conversación de diseño, después implementar.
 
-4. **Tope de 250 facturas/mes, versión soft (sin corte).**
+3. **Tope de 250 facturas/mes, versión soft (sin corte).**
    Qué: contador en la DB + aviso al acercarse al límite (ej. 200).
    Dónde: `app/models.py::User.invoices_this_month` (ya existe el campo),
    diseño funcional completo en `docs/decisions/0008-tope-facturas-mensual.md`.
    Qué se necesita: implementar el aviso en la UI y definir el reset
    mensual del contador (no diseñado todavía).
 
-5. **Probar en el celular** el rediseño del formulario y de la pantalla de
-   inicio (ADR-0001, ADR-0002, ADR-0003 área App) — ya confirmado
-   funcionando en navegador desktop, falta mobile real.
-   Dónde: `templates/app.html`, `static/js/app.js`, `static/css/app.css`.
-   Qué se necesita: probarlo en un celular real y ajustar si algo se ve mal.
+4. **Probar en el celular real** todo lo que quedó confirmado solo en
+   Chromium/Playwright o navegador desktop hasta ahora: el rediseño del
+   formulario y la pantalla de inicio (ADR-0001, ADR-0002, ADR-0003 área
+   App), la sesión de 90 días + login sin re-consentimiento (ADR-0012),
+   las tarjetas de tips/consejos/espera y sus tres carruseles (ADR-0004
+   Decisión E, ADR-0007 área App, ADR-0005 repo general), y el fallback
+   del service worker en un cold start real de Render.
+   Dónde: toda la PWA — `templates/app.html`, `static/js/app.js`,
+   `static/css/app.css`, `static/sw.js`, `app/blueprints/auth.py`.
+   Qué se necesita: probarlo en un celular real (instalado como PWA) y
+   ajustar si algo se ve o se comporta distinto que en desktop.
+
+5. **Decidir el timeout de gunicorn en Render** (hallazgo de la sesión del
+   2026-07-15, sin resolver a propósito).
+   Qué: el default de gunicorn (30s, sin override en `render.yaml`) podría
+   no alcanzar si varios archivos de una misma tanda pegan 503 de Gemini a
+   la vez (el backoff aprobado ya suma ~14s de sleep por archivo, sin
+   contar la duración real de las llamadas).
+   Dónde: `render.yaml` (`startCommand`), detalle completo en
+   `docs/decisions/0005-pantalla-espera-cold-start.md`.
+   Qué se necesita: que el CEO decida si subir `--timeout` (ej. a 60s) o
+   dejarlo así hasta ver si el caso se repite en uso real — no se tocó
+   sin esa decisión.
 
 ## Deuda técnica / discusiones abiertas (no bloquean vender)
 - Armar el set de casos de prueba del prompt (ADR-0007/0008 área Planillas)
