@@ -257,18 +257,39 @@ encabezado), nota exacta en el encabezado, guardado con y sin
 `otros_impuestos`, ceros a la izquierda y detección de duplicados sin
 regresión. **Probado con mocks** (sin Gemini real): la tarjeta de
 revisión ya no pide los 6 campos viejos, sí pide "Otros impuestos", con
-el resaltado de baja certeza funcionando igual. **No probado, pendiente
-de confirmación real por el CEO**: extracción real de Gemini con una foto
-que tenga percepciones/retenciones de verdad (no hay fotos de muestra en
-este entorno) — ahí también se puede medir el tiempo real de extracción
-con la v3 para comparar contra los ~9s previos. Detalle completo en
+el resaltado de baja certeza funcionando igual.
+
+**Resultado medido y cierre del punto de tiempos (handoff del CEO,
+2026-07-17)**: probado con fotos reales en producción. Antes del cambio
+(v2, prompt completo): 1 muestra, `gemini: 9.23s`. Después (v3, prompt
+recortado): 3 muestras, `25.85s` / `8.30s` / `7.35s`. **Conclusión
+aprobada por el CEO**: la mejora existe pero es modesta (~1-2s sobre el
+caso típico, ~9.2s → ~7.5-8.3s) — la mayor parte del tiempo de Gemini se
+va en procesar la imagen, no en generar la respuesta (base pre-cambio de
+una sola muestra, número fino tentativo, conclusión cualitativa sólida).
+El pico de `25.85s` se atribuye a variabilidad de la infraestructura de
+Google (picos de demanda), no al cambio — las dos lecturas siguientes
+volvieron a lo normal. La variabilidad entre llamadas (7 a 26s) es el
+factor dominante y no es controlable desde la app. **Decisión de cierre
+del CEO**: se acepta el tiempo actual (~7-8s típicos, picos ocasionales)
+como suficiente para la etapa de venta a conocidos (ADR-0007), cubierto
+por la pantalla de espera con carrusel (ADR-0005). Camino futuro
+registrado, no decidido, no para implementar ahora: procesamiento en
+segundo plano con aviso al usuario (cambia quién espera, no cuánto) — se
+retoma si el uso real muestra picos frecuentes o quejas. La
+instrumentación (`LOG_TIEMPOS`) sigue prendida para seguir acumulando
+datos. **Sigue sin probar**: que Gemini detecte y sume bien percepciones
+reales en `otros_impuestos` (las 4 muestras confirman tiempos, no
+contenido extraído) — no hay fotos de muestra con ese caso en este
+entorno. Detalle completo en
 `docs/areas/planillas/decisions/0011-estructura-v3.md`.
 
 ## Current phase
 Phase 1 en producción (`https://facturas-saas.onrender.com`), planilla v3
-(18 columnas) implementada, probada contra la API real de Sheets pero
-pendiente de confirmación con una foto real de Gemini. **Re-priorizado el
-camino a vender** (ADR-0007 repo general): el MVP sale a la calle sin cobro online,
+(18 columnas) implementada y probada con fotos reales — tiempo de
+extracción medido y cerrado por el CEO (~7-8s típicos, aceptado para esta
+etapa). **Re-priorizado el camino a vender** (ADR-0007 repo general): el
+MVP sale a la calle sin cobro online,
 sin landing y sin dominio propio — venta persona a persona a conocidos, demo
 presencial, cobro manual. Checklist real de "antes de vender" en
 `docs/ROADMAP.md`.
@@ -753,3 +774,12 @@ auditoría hecha, 3 textos corregidos.
   la izquierda); probado con mocks el flujo completo sin Gemini real.
   Pendiente de confirmación real del CEO con una foto con percepciones
   de verdad.
+- 2026-07-17: ADR-0011 cierre del resultado medido (handoff del CEO) —
+  probado con fotos reales: 9.23s antes (v2, 1 muestra) vs. 25.85s/
+  8.30s/7.35s después (v3, 3 muestras). Mejora modesta (~1-2s en el caso
+  típico) — la mayor parte del tiempo de Gemini es procesar la imagen,
+  no generar la respuesta; el pico de 25.85s es variabilidad de Google,
+  no del cambio. Decisión de cierre: se acepta ~7-8s típicos para la
+  etapa de venta a conocidos (ADR-0007), cubierto por la pantalla de
+  espera (ADR-0005). Procesamiento en segundo plano queda anotado como
+  camino futuro, no decidido. Instrumentación sigue prendida.

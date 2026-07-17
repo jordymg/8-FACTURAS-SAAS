@@ -28,11 +28,31 @@ Probado contra la API real de Sheets (ambas cuentas de prueba): 18
 columnas en el orden correcto, formato/ancho/protección/fila congelada,
 rojo solo en datos (no encabezado) y nota exacta en "Otros impuestos",
 guardado con y sin `otros_impuestos`, ceros a la izquierda y duplicados
-sin regresión. **No probado**: extracción real de Gemini con una foto que
-tenga percepciones reales (no hay fotos de muestra en este entorno) — el
-CEO lo confirma con una foto real en producción, y ahí mismo se puede
-comparar el tiempo real de extracción contra los ~9s previos (ADR-0014).
-Detalle completo en
+sin regresión.
+
+**Resultado medido y cierre (2026-07-17)**: el CEO probó con fotos reales
+en producción. Antes del cambio (v2): 1 muestra, `gemini: 9.23s`. Después
+(v3): 3 muestras, `25.85s` / `8.30s` / `7.35s`. Conclusión aprobada: la
+mejora existe pero es **modesta** (~1-2s sobre el caso típico, de ~9.2s a
+~7.5-8.3s) — la mayor parte del tiempo de Gemini se va en procesar la
+imagen, no en generar la respuesta (base pre-cambio de una sola muestra,
+número fino tentativo, pero la conclusión cualitativa es sólida). El pico
+de `25.85s` se atribuye a variabilidad de la infraestructura de Google
+(las dos lecturas siguientes volvieron a lo normal), no al cambio — la
+variabilidad entre llamadas (7 a 26s) es el factor dominante y no es
+controlable desde la app. **Decisión de cierre del CEO**: se acepta el
+tiempo actual (~7-8s típicos, picos ocasionales) como suficiente para la
+etapa de venta a conocidos (ADR-0007 repo general), cubierto por la
+pantalla de espera con carrusel (ADR-0005 repo general). Camino futuro
+registrado, no decidido, no para implementar ahora: procesamiento en
+segundo plano con aviso al usuario (cambia quién espera, no cuánto) — se
+retoma si el uso real muestra picos frecuentes o quejas. La
+instrumentación de tiempos sigue prendida para seguir acumulando datos.
+
+**Sigue sin probar**: que Gemini efectivamente detecte y sume bien
+percepciones/retenciones reales en `otros_impuestos` (las 4 muestras de
+arriba confirman tiempos, no contenido extraído) — no hay fotos de
+muestra con ese caso en este entorno. Detalle completo en
 [`decisions/0011-estructura-v3.md`](decisions/0011-estructura-v3.md).
 
 ## Historia — Estructura v2 (reemplazada por v3, ver arriba)

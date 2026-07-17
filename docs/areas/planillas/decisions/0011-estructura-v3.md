@@ -166,3 +166,46 @@ después: exactamente 18).
   el modelo efectivamente detecta y suma bien esos montos en
   `otros_impuestos`, y medir el tiempo real de extracción con la v3 para
   compararlo contra los ~9s previos.
+
+## Resultado medido (2026-07-17) — cierra el punto pendiente de arriba
+El CEO probó con fotos reales en producción; la instrumentación de
+tiempos ([ADR-0014](../../decisions/0014-instrumentacion-tiempos-extraccion.md))
+registró:
+
+- **Antes del cambio** (v2, prompt completo): 1 muestra real — `gemini:
+  9.23s` (imagen 2.5MB).
+- **Después del cambio** (v3, prompt recortado): 3 muestras reales —
+  `gemini: 25.85s`, `8.30s` y `7.35s` (imágenes 2.6-2.7MB).
+
+**Conclusiones aprobadas por el CEO:**
+1. La mejora del recorte de prompt existe pero es **modesta** (~1-2s
+   sobre el caso típico: de ~9.2s a ~7.5-8.3s) — la mayor parte del
+   tiempo de Gemini se va en procesar la imagen, no en generar la
+   respuesta (menos campos en el schema ayuda, pero no es el cuello de
+   botella principal). **Advertencia metodológica**: la base pre-cambio
+   es una sola muestra, el número fino es tentativo — la conclusión
+   cualitativa (mejora chica, no transformadora) es sólida.
+2. La muestra de `25.85s` se atribuye a variabilidad de la
+   infraestructura de Google (pico de demanda), no al cambio — las dos
+   lecturas inmediatamente posteriores volvieron al rango normal.
+3. La **variabilidad entre llamadas** (7 a 26s con condiciones
+   equivalentes) es el factor dominante del tiempo de extracción, y no
+   es controlable desde la app.
+
+**Decisión de cierre del CEO**: se acepta el tiempo actual (~7-8s
+típicos, con picos ocasionales) como suficiente para la etapa de venta a
+conocidos ([ADR-0007 repo general](../../decisions/0007-lanzamiento-mvp-sin-cobro-online.md)),
+cubierto por la pantalla de espera con carrusel
+([ADR-0005 repo general](../../decisions/0005-pantalla-espera-cold-start.md)).
+
+**Camino futuro registrado, NO decidido y NO para implementar ahora**:
+procesamiento en segundo plano con aviso al usuario — cambia *quién*
+espera (el usuario deja de mirar la pantalla de espera), no *cuánto* se
+espera en total. Se retoma si el uso real muestra picos frecuentes o
+quejas de los primeros clientes. La instrumentación de tiempos sigue
+prendida (`LOG_TIEMPOS`, default activado) para seguir acumulando datos.
+
+**ADR-0011: cierra este punto.** El resto de lo "no probado" arriba
+(que Gemini detecte y sume bien percepciones reales en
+`otros_impuestos`) sigue abierto — las 4 muestras reales confirman
+tiempos, no contenido extraído.
