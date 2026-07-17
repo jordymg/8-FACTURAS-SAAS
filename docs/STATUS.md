@@ -227,10 +227,48 @@ visible. Implementado:
   — candidato a cachear si los tiempos muestran que pesa. Detalle
   completo en `docs/decisions/0014-instrumentacion-tiempos-extraccion.md`.
 
+**Estructura v3 de la planilla — 18 columnas (ADR-0011 área Planillas,
+handoff del CEO, 2026-07-17)**: los datos reales de la instrumentación de
+tiempos (ADR-0014) mostraron que Gemini es el componente dominante del
+tiempo de extracción (~9s medidos) — el CEO decidió recortar campos por
+doble motivo (simplificar producto + acortar prompt/respuesta). Se sacan
+6 columnas (Perc. IVA, Perc. IIBB ARBA, IIBB CABA, Ret. Ganancias, Ret.
+IVA, SIRTAC) y entra una sola columna nueva, **"Otros impuestos"** — suma
+de cualquier percepción/retención/impuesto no discriminado, con texto
+rojo en la columna de datos (no el encabezado) + nota fija en el
+encabezado avisando revisar la factura original con el contador.
+`imp_internos` se sigue extrayendo aparte. Sin clientes reales
+conectados — sin migración, la pestaña del año en curso de la planilla de
+referencia (ambas cuentas de prueba) se renombró a `"2026-v2"` (datos
+intactos) y la app crea `"2026"` de nuevo con v3 en el próximo uso.
+
+**Bug encontrado y corregido en el camino**: `_formatear_encabezado()`
+(`app/services/sheets.py`, reformatea `sheet1`/"Hoja 1" en cada
+reconexión) no limpiaba columnas que sobraban cuando la estructura se
+achica (23→18) — quedaban etiquetas viejas pegadas a la derecha ("SIRTAC"
+y otras). Nunca se había manifestado antes porque v1→v2 solo había
+agregado columnas. Corregido con un `batch_clear` de las columnas
+sobrantes, verificado contra la API real de Sheets.
+
+**Probado contra la API real** (ambas cuentas de prueba, no un mock): 18
+columnas en el orden correcto, formato/ancho/protección/fila congelada,
+texto rojo solo en la columna de datos de "Otros impuestos" (no en el
+encabezado), nota exacta en el encabezado, guardado con y sin
+`otros_impuestos`, ceros a la izquierda y detección de duplicados sin
+regresión. **Probado con mocks** (sin Gemini real): la tarjeta de
+revisión ya no pide los 6 campos viejos, sí pide "Otros impuestos", con
+el resaltado de baja certeza funcionando igual. **No probado, pendiente
+de confirmación real por el CEO**: extracción real de Gemini con una foto
+que tenga percepciones/retenciones de verdad (no hay fotos de muestra en
+este entorno) — ahí también se puede medir el tiempo real de extracción
+con la v3 para comparar contra los ~9s previos. Detalle completo en
+`docs/areas/planillas/decisions/0011-estructura-v3.md`.
+
 ## Current phase
-Phase 1 en producción (`https://facturas-saas.onrender.com`), planilla v2
-(23 columnas) confirmada con datos reales. **Re-priorizado el camino a
-vender** (ADR-0007 repo general): el MVP sale a la calle sin cobro online,
+Phase 1 en producción (`https://facturas-saas.onrender.com`), planilla v3
+(18 columnas) implementada, probada contra la API real de Sheets pero
+pendiente de confirmación con una foto real de Gemini. **Re-priorizado el
+camino a vender** (ADR-0007 repo general): el MVP sale a la calle sin cobro online,
 sin landing y sin dominio propio — venta persona a persona a conocidos, demo
 presencial, cobro manual. Checklist real de "antes de vender" en
 `docs/ROADMAP.md`.
@@ -700,4 +738,18 @@ auditoría hecha, 3 textos corregidos.
   `gemini-2.5-flash`. Observación de optimización sin implementar:
   `asegurar_pestana_del_anio()` pega a la API de Sheets en cada guardado
   incluso cuando la pestaña ya existe.
-  mantienen sin cambios.
+- 2026-07-17: ADR-0011 área Planillas (handoff del CEO) — estructura v3
+  de la planilla, 18 columnas (reemplaza la v2 de 23). Motivada por
+  ADR-0014: los tiempos reales mostraron a Gemini como componente
+  dominante (~9s). Se sacan 6 columnas (Perc. IVA, Perc. IIBB ARBA, IIBB
+  CABA, Ret. Ganancias, Ret. IVA, SIRTAC), entra "Otros impuestos" (suma
+  de lo no discriminado, texto rojo + nota en el encabezado). Prompt de
+  Gemini recortado. Sin clientes conectados, sin migración — pestaña
+  `"2026"` de la planilla de referencia renombrada a `"2026-v2"` en
+  ambas cuentas de prueba. Bug encontrado y corregido:
+  `_formatear_encabezado()` no limpiaba columnas sobrantes al achicar la
+  estructura (23→18) — corregido con `batch_clear`. Probado contra la
+  API real de Sheets (estructura, formato, guardado, duplicados, ceros a
+  la izquierda); probado con mocks el flujo completo sin Gemini real.
+  Pendiente de confirmación real del CEO con una foto con percepciones
+  de verdad.

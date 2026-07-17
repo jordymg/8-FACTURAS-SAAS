@@ -43,15 +43,14 @@ class SheetAccessError(Exception):
     """La Service Account no tiene acceso a la planilla, o la planilla es inválida."""
 
 
-# Orden completo de columnas de la planilla — estructura v2 (ADR-0005 +
-# ADR-0006, docs/areas/planillas/decisions/). cod_proveedor y cuenta no las
-# completa ni la IA ni el usuario, quedan en blanco (ver ADR-0006).
-# cargada_el la completa la app automáticamente.
+# Orden completo de columnas de la planilla — estructura v3 (ADR-0005 +
+# ADR-0006 + ADR-0011, docs/areas/planillas/decisions/). cod_proveedor y
+# cuenta no las completa ni la IA ni el usuario, quedan en blanco (ver
+# ADR-0006). cargada_el la completa la app automáticamente.
 ROW_KEYS = [
     "fecha", "proveedor", "cod_proveedor", "cuit", "categoria", "cuenta",
     "tipo", "punto_venta", "numero", "neto", "iva_105", "iva_21", "iva_27",
-    "perc_iva", "perc_iibb_arba", "iibb_caba", "ret_ganancias", "ret_iva",
-    "sirtac", "imp_internos", "total", "moneda", "cargada_el",
+    "otros_impuestos", "imp_internos", "total", "moneda", "cargada_el",
 ]
 
 # Texto de encabezado (lo que ve el cliente/contador) — distinto de la clave
@@ -71,16 +70,26 @@ _COLUMN_WIDTHS = {
     "fecha": 95, "proveedor": 220, "cod_proveedor": 110, "cuit": 110,
     "categoria": 130, "cuenta": 90, "tipo": 95, "punto_venta": 95,
     "numero": 100, "neto": 100, "iva_105": 90, "iva_21": 85, "iva_27": 85,
-    "perc_iva": 95, "perc_iibb_arba": 110, "iibb_caba": 95,
-    "ret_ganancias": 110, "ret_iva": 90, "sirtac": 85, "imp_internos": 100,
+    "otros_impuestos": 110, "imp_internos": 100,
     "total": 110, "moneda": 80, "cargada_el": 140,
 }
 
 # Columnas con montos — se muestran con formato de moneda (ADR-0004).
 _MONEY_KEYS = [
-    "neto", "iva_105", "iva_21", "iva_27", "perc_iva", "perc_iibb_arba",
-    "iibb_caba", "ret_ganancias", "ret_iva", "sirtac", "imp_internos", "total",
+    "neto", "iva_105", "iva_21", "iva_27", "otros_impuestos", "imp_internos", "total",
 ]
+
+# "Otros impuestos" (ADR-0011): suma de percepciones/retenciones/impuestos
+# que el sistema no desglosa por columna propia — se marca en rojo (toda la
+# columna de datos, no el encabezado) como señal visual de que esa factura
+# necesita revisión del cliente/contador, más una nota fija en el
+# encabezado con el texto exacto aprobado por el CEO.
+_ROJO = {"red": 1, "green": 0, "blue": 0}
+_NOTA_OTROS_IMPUESTOS = (
+    "Suma de percepciones, retenciones u otros impuestos del comprobante "
+    "que el sistema no desglosa por separado. Si hay un valor acá, revisá "
+    "la factura original con tu contador."
+)
 
 # Estas columnas son identificadores, no cantidades — si se dejan como
 # USER_ENTERED, Sheets las interpreta como número y pierden los ceros a la
@@ -154,6 +163,14 @@ def _formatear_encabezado(sheet: gspread.Worksheet) -> None:
     # cargados (fila 2 en adelante) no se tocan. Rango explícito, no
     # append_row (ver Issue #001 en docs/ISSUES.md).
     sheet.update([ROW_LABELS], range_name=f"A1:{last_col}1", value_input_option="USER_ENTERED")
+    # Si la planilla venía de una estructura con MÁS columnas (ej. v2→v3,
+    # de 23 a 18 con ADR-0011), limpiar las etiquetas viejas que sobran a la
+    # derecha del encabezado nuevo — si no, quedan pegadas (ej. "SIRTAC")
+    # aunque ya no correspondan a ninguna columna real.
+    if sheet.col_count > len(ROW_KEYS):
+        primera_sobrante = _last_col_letter(len(ROW_KEYS) + 1)
+        ultima_sobrante = _last_col_letter(sheet.col_count)
+        sheet.batch_clear([f"{primera_sobrante}1:{ultima_sobrante}1"])
     sheet.format(f"A1:{last_col}1", {"textFormat": {"bold": True}})
 
     # Reglas de integridad y formato visual — ver docs/areas/planillas/
@@ -166,6 +183,11 @@ def _formatear_encabezado(sheet: gspread.Worksheet) -> None:
     # Moneda: valor numérico real en las columnas de montos, se muestra con formato de moneda.
     money_range = f"{_col_letter_of(_MONEY_KEYS[0])}:{_col_letter_of(_MONEY_KEYS[-1])}"
     sheet.format(money_range, {"numberFormat": {"type": "CURRENCY", "pattern": '"$"#,##0.00'}})
+    # "Otros impuestos" (ADR-0011): texto rojo en la columna de datos (no en
+    # el encabezado) + nota fija en la celda de encabezado.
+    otros_col = _col_letter_of("otros_impuestos")
+    sheet.format(f"{otros_col}2:{otros_col}", {"textFormat": {"foregroundColor": _ROJO}})
+    sheet.update_note(f"{otros_col}1", _NOTA_OTROS_IMPUESTOS)
     sheet.freeze(rows=1)
     _apply_column_widths(sheet)
 
@@ -241,6 +263,7 @@ def crear_pestanas(spreadsheet_id: str, nombres: list[str]) -> list[str]:
     fecha_col_idx = ROW_KEYS.index("fecha")
     money_start_idx = ROW_KEYS.index(_MONEY_KEYS[0])
     money_end_idx = ROW_KEYS.index(_MONEY_KEYS[-1]) + 1
+    otros_idx = ROW_KEYS.index("otros_impuestos")
 
     requests = []
     for nombre in a_crear:
@@ -263,6 +286,22 @@ def crear_pestanas(spreadsheet_id: str, nombres: list[str]) -> list[str]:
             "range": {"sheetId": sid, "startColumnIndex": money_start_idx, "endColumnIndex": money_end_idx},
             "cell": {"userEnteredFormat": {"numberFormat": {"type": "CURRENCY", "pattern": '"$"#,##0.00'}}},
             "fields": "userEnteredFormat.numberFormat",
+        }})
+        # "Otros impuestos" (ADR-0011): texto rojo en toda la columna de
+        # datos (desde la fila 2, el encabezado queda sin colorear) — señal
+        # visual de que esa factura tiene impuestos sin desglosar.
+        requests.append({"repeatCell": {
+            "range": {"sheetId": sid, "startRowIndex": 1,
+                      "startColumnIndex": otros_idx, "endColumnIndex": otros_idx + 1},
+            "cell": {"userEnteredFormat": {"textFormat": {"foregroundColor": _ROJO}}},
+            "fields": "userEnteredFormat.textFormat.foregroundColor",
+        }})
+        # Nota fija en la celda de encabezado de "Otros impuestos".
+        requests.append({"updateCells": {
+            "range": {"sheetId": sid, "startRowIndex": 0, "endRowIndex": 1,
+                      "startColumnIndex": otros_idx, "endColumnIndex": otros_idx + 1},
+            "rows": [{"values": [{"note": _NOTA_OTROS_IMPUESTOS}]}],
+            "fields": "note",
         }})
         requests.append({"updateSheetProperties": {
             "properties": {"sheetId": sid, "gridProperties": {"frozenRowCount": 1}},

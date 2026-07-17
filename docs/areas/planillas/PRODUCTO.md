@@ -10,31 +10,41 @@ lo que el cliente efectivamente usa día a día y le entrega a su contador a fin
 de mes. Ver [`docs/PRD.md`](../../PRD.md).
 
 ## 2. Estructura
-> **Esto describe la v1, la que está hoy en código.** Ya se decidió pasar a
-> una v2 de 23 columnas — ver
+> **v3 vigente** (18 columnas) — ver
+> [`decisions/0011-estructura-v3.md`](decisions/0011-estructura-v3.md).
+> Reemplaza la v2 (23 columnas,
 > [`decisions/0005-estructura-v2.md`](decisions/0005-estructura-v2.md) +
-> [`decisions/0006-categoria-cuenta-cod-proveedor.md`](decisions/0006-categoria-cuenta-cod-proveedor.md).
-> Sin puntos abiertos — lista para implementar.
+> [`decisions/0006-categoria-cuenta-cod-proveedor.md`](decisions/0006-categoria-cuenta-cod-proveedor.md)),
+> que a su vez había reemplazado la v1 original de 9 columnas.
 
-1 pestaña (`sheet1`, la primera hoja de la planilla), 9 columnas de datos +
-2 columnas de metadata que escribe la app:
+1 pestaña por año calendario (ej. `"2026"`, ver
+[`decisions/0003-pestanas-por-periodo.md`](decisions/0003-pestanas-por-periodo.md)),
+18 columnas de datos:
 
 | Col | Campo | Tipo | Quién la escribe |
 |---|---|---|---|
 | A | fecha | fecha (AAAA-MM-DD) | La IA extrae, el usuario confirma/edita |
 | B | proveedor | texto | La IA extrae, el usuario confirma/edita |
-| C | cuit | texto (11 dígitos) | La IA extrae, el usuario confirma/edita |
-| D | tipo | texto (Factura A/B/C, Presupuesto, etc.) | La IA extrae, el usuario confirma/edita |
-| E | numero | texto | La IA extrae, el usuario confirma/edita |
-| F | neto | número | La IA extrae, el usuario confirma/edita |
-| G | iva | número | La IA extrae, el usuario confirma/edita |
-| H | total | número | La IA extrae, el usuario confirma/edita |
-| I | moneda | texto (ARS/USD) | El usuario elige (selector) |
-| J | imagen | texto | La app (hoy siempre vacío — MVP sin persistencia de imagen) |
-| K | cargada_el | fecha-hora | La app, automático (timestamp del guardado) |
+| C | cod_proveedor | texto | En blanco por ahora (ver ADR-0006) |
+| D | cuit | texto (11 dígitos) | La IA extrae, el usuario confirma/edita |
+| E | categoria | texto | La IA clasifica libremente, el usuario corrige (ver ADR-0006) |
+| F | cuenta | texto | En blanco — es del contador (ver ADR-0006) |
+| G | tipo | texto (A/B/C/X, etc.) | La IA extrae — regla de las 4 vías de autorización (ADR-0007) |
+| H | punto_venta | texto (ceros a la izq.) | La IA extrae |
+| I | numero | texto (ceros a la izq.) | La IA extrae |
+| J | neto | número | La IA extrae |
+| K | iva_105 | número | La IA extrae, IVA discriminado al 10,5% |
+| L | iva_21 | número | La IA extrae, IVA discriminado al 21% |
+| M | iva_27 | número | La IA extrae, IVA discriminado al 27% |
+| N | **otros_impuestos** | número (texto rojo) | La IA suma percepciones/retenciones/otros no discriminados aparte (ADR-0011) |
+| O | imp_internos | número | La IA extrae |
+| P | total | número | La IA extrae |
+| Q | moneda | texto (ARS/USD) | El usuario elige (selector) |
+| R | cargada_el | fecha-hora | La app, automático (timestamp del guardado) |
 
-Definido en código en `app/services/fields.py` (columnas A-I) y
-`app/services/sheets.py::ROW_KEYS` (agrega imagen + cargada_el).
+Definido en código en `app/services/fields.py` (columnas A-Q salvo
+cod_proveedor/cuenta) y `app/services/sheets.py::ROW_KEYS` (orden
+completo, incluye cod_proveedor, cuenta y cargada_el).
 
 **Qué no se toca a mano:** el encabezado (fila 1) — lo escribe la app la
 primera vez que se conecta una planilla vacía. Las columnas J y K son
@@ -101,16 +111,21 @@ Resumen:
 - Implementación pendiente en `connect_spreadsheet()`.
 
 ## 7. Versionado
-La estructura en código hoy es **v1** (9 columnas + imagen + cargada_el,
-definida 2026-07-04 al integrar el prototipo del founder — ver
+**v1** (9 columnas + imagen + cargada_el, definida 2026-07-04 al integrar
+el prototipo del founder — ver
 [ADR-0004 del repo general](../../decisions/0004-service-account-sheets.md),
-no confundir con el ADR-0004 de esta área). **v2** (23 columnas, alineada a
-categorías impositivas reales — IVA por alícuota, percepciones, retenciones)
-ya está decidida, sin puntos abiertos, en
+no confundir con el ADR-0004 de esta área) → **v2** (23 columnas, alineada
+a categorías impositivas reales — IVA por alícuota, percepciones,
+retenciones —
 [`decisions/0005-estructura-v2.md`](decisions/0005-estructura-v2.md) +
-[`decisions/0006-categoria-cuenta-cod-proveedor.md`](decisions/0006-categoria-cuenta-cod-proveedor.md),
-pendiente de implementar. Todo cambio de estructura (agregar/sacar/renombrar
-columnas, nueva plantilla) se decide en esta área, con un ADR en `decisions/`.
+[`decisions/0006-categoria-cuenta-cod-proveedor.md`](decisions/0006-categoria-cuenta-cod-proveedor.md))
+→ **v3 vigente** (18 columnas, 2026-07-17 — se sacan 6 columnas de
+percepciones/retenciones/SIRTAC y se reemplazan por una sola "Otros
+impuestos" que suma todo lo no discriminado aparte, motivado por
+simplificar el producto y acortar el tiempo de extracción con Gemini —
+[`decisions/0011-estructura-v3.md`](decisions/0011-estructura-v3.md)).
+Todo cambio de estructura (agregar/sacar/renombrar columnas, nueva
+plantilla) se decide en esta área, con un ADR en `decisions/`.
 
 ## 8. Backlog de ideas
 - Totales mensuales (fila o pestaña de resumen).

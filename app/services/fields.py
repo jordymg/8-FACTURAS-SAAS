@@ -1,6 +1,6 @@
 """
 Campos que la IA extrae y el usuario puede editar en la tarjeta de revisión
-— estructura v2 (ADR-0005 + ADR-0006 + ADR-0007, docs/areas/planillas/decisions/).
+— estructura v3 (ADR-0005/0006/0007 + ADR-0011, docs/areas/planillas/decisions/).
 Único lugar a editar si cambian estos campos — lo usan gemini.py (qué
 pedirle a la IA) y el frontend (formulario de revisión).
 
@@ -47,18 +47,16 @@ FIELDS = [
      "description": "Monto de IVA a la alícuota del 21%, si el comprobante lo discrimina por separado"},
     {"key": "iva_27", "label": "IVA 27%", "required": False,
      "description": "Monto de IVA a la alícuota del 27%, si el comprobante lo discrimina por separado"},
-    {"key": "perc_iva", "label": "Perc. IVA", "required": False,
-     "description": "Percepción de IVA, si el comprobante la discrimina por separado"},
-    {"key": "perc_iibb_arba", "label": "Perc. IIBB ARBA", "required": False,
-     "description": "Percepción de Ingresos Brutos de ARBA (provincia de Buenos Aires), si aparece"},
-    {"key": "iibb_caba", "label": "IIBB CABA", "required": False,
-     "description": "Ingresos Brutos de CABA, si aparece"},
-    {"key": "ret_ganancias", "label": "Ret. Ganancias", "required": False,
-     "description": "Retención de Impuesto a las Ganancias, si aparece"},
-    {"key": "ret_iva", "label": "Ret. IVA", "required": False,
-     "description": "Retención de IVA, si aparece"},
-    {"key": "sirtac", "label": "SIRTAC", "required": False,
-     "description": "Monto de SIRTAC, si aparece discriminado por separado"},
+    {"key": "otros_impuestos", "label": "Otros impuestos", "required": False,
+     "description": (
+         "Suma de cualquier percepción, retención u otro impuesto que el "
+         "comprobante discrimine por separado y que NO sea IVA a una alícuota "
+         "(10,5%/21%/27%) ni Impuestos Internos (ej. percepción de IVA, "
+         "percepción de IIBB, retención de Ganancias, retención de IVA, "
+         "SIRTAC, u otros). Si hay más de uno, sumalos en un solo número. Si "
+         'no hay ninguno, dejalo como string vacío "", igual que el resto '
+         "de los montos ausentes."
+     )},
     {"key": "imp_internos", "label": "Imp. Internos", "required": False,
      "description": "Impuestos Internos, si aparecen discriminados por separado"},
     {"key": "total", "label": "Total Compra", "required": True,

@@ -1,6 +1,41 @@
 # STATUS — Área Planillas
 
 ## Estado actual
+**Estructura v3 implementada (ADR-0011, 2026-07-17)** — 18 columnas,
+reemplaza la v2. Motivada por la instrumentación de tiempos (ADR-0014
+repo general): con datos reales, la llamada a Gemini resultó el
+componente dominante del tiempo de extracción (~9s medidos) — el CEO
+decidió recortar campos por doble motivo (simplificar producto + acortar
+prompt/respuesta). Se sacan 6 columnas (Perc. IVA, Perc. IIBB ARBA, IIBB
+CABA, Ret. Ganancias, Ret. IVA, SIRTAC) y entra una sola columna nueva,
+**"Otros impuestos"** — suma de cualquier percepción/retención/impuesto
+no discriminado, con texto rojo en la columna de datos (no el
+encabezado) + nota fija en el encabezado avisando que hay que revisar la
+factura original con el contador. `imp_internos` se sigue extrayendo
+aparte (no entra en la suma). Sin clientes reales conectados, sin
+migración — la pestaña del año en curso de la planilla de referencia se
+renombró a `"2026-v2"` (datos intactos, sin uso) y la app crea `"2026"`
+de nuevo con v3 en el próximo uso.
+
+Bug encontrado y corregido en el camino: `_formatear_encabezado()`
+(reformatea `sheet1`/"Hoja 1" en cada reconexión) no limpiaba columnas
+que sobraban cuando la estructura se achica (23→18) — quedaban etiquetas
+viejas pegadas a la derecha. Nunca se había manifestado antes porque
+v1→v2 solo agregó columnas. Corregido con un `batch_clear` de las
+columnas sobrantes, verificado contra la API real.
+
+Probado contra la API real de Sheets (ambas cuentas de prueba): 18
+columnas en el orden correcto, formato/ancho/protección/fila congelada,
+rojo solo en datos (no encabezado) y nota exacta en "Otros impuestos",
+guardado con y sin `otros_impuestos`, ceros a la izquierda y duplicados
+sin regresión. **No probado**: extracción real de Gemini con una foto que
+tenga percepciones reales (no hay fotos de muestra en este entorno) — el
+CEO lo confirma con una foto real en producción, y ahí mismo se puede
+comparar el tiempo real de extracción contra los ~9s previos (ADR-0014).
+Detalle completo en
+[`decisions/0011-estructura-v3.md`](decisions/0011-estructura-v3.md).
+
+## Historia — Estructura v2 (reemplazada por v3, ver arriba)
 **Estructura v2 implementada** (ADR-0005 + ADR-0006, 23 columnas — IVA por
 alícuota, percepciones, retenciones, Cód. Proveedor, Categoría clasificada
 libremente por la IA, CUENTA en blanco). Reemplaza la v1 (9 columnas
@@ -55,11 +90,14 @@ aviso amarillo no bloqueante arriba de la tarjeta.
 
 ## Next
 1. **Confirmar en producción con una foto real que tenga impuestos
-   discriminados** (IVA a alguna alícuota, percepción o retención) — CAE,
-   duda y duplicados ya se probaron en producción (Issues #002 y #003),
-   falta específicamente ese caso. El formulario de revisión ya tiene
-   rediseño decidido (ver `docs/areas/app/decisions/0001-*.md`), sin
-   implementar todavía.
+   discriminados** (IVA a alguna alícuota, o algo que caiga en "Otros
+   impuestos" — percepción, retención, SIRTAC) — CAE, duda y duplicados
+   ya se probaron en producción (Issues #002 y #003), falta
+   específicamente ese caso. Con la v3 (ADR-0011), además hay que
+   confirmar que "Otros impuestos" suma bien cuando hay más de un
+   concepto no discriminado en la misma factura. El formulario de
+   revisión ya tiene rediseño decidido (ver
+   `docs/areas/app/decisions/0001-*.md`), sin implementar todavía.
 2. **Armar el set de casos de prueba del prompt** que piden el ADR-0007/0008
    (factura electrónica A/B/C, ticket consumidor final, tique-factura A,
    comprobante con CAI, presupuesto sin autorización) para validar la regla

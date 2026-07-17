@@ -3,6 +3,12 @@
 **Date:** 2026-07-06
 **Status:** ADOPTADA e IMPLEMENTADA (2026-07-06) — ver `docs/areas/planillas/STATUS.md` para detalle de la implementación y bugs encontrados en el camino
 
+> ⚠️ **Reemplazada por [ADR-0011](0011-estructura-v3.md) (2026-07-17):**
+> la v2 de 23 columnas pasa a v3 de 18 — se sacan 6 columnas de
+> percepciones/retenciones/SIRTAC y se reemplazan por una sola columna
+> "Otros impuestos" (suma de todo lo que no se desglosa aparte). Esta
+> página queda como historia de la v2, no como estructura vigente.
+
 ## Contexto
 La v1 (9 campos + imagen + cargada_el, ADR-0004 del repo general) era una
 versión simple para validar el flujo. El founder pidió repensar toda la

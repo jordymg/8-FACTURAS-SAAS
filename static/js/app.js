@@ -268,8 +268,7 @@
         valido = false;
       }
       const camposNumericos = [
-        "neto", "iva_105", "iva_21", "iva_27", "perc_iva", "perc_iibb_arba",
-        "iibb_caba", "ret_ganancias", "ret_iva", "sirtac", "imp_internos", "total",
+        "neto", "iva_105", "iva_21", "iva_27", "otros_impuestos", "imp_internos", "total",
       ];
       if (camposNumericos.includes(campo.key) && valor && isNaN(Number(valor.replace(",", ".")))) {
         ctl.classList.add("campo-invalido");
