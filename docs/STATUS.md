@@ -166,6 +166,67 @@ completo en `docs/decisions/0013-keep-alive-render-free.md` e
 [Issue #007](ISSUES.md).
 Complementa, no reemplaza, al ADR-0005 (pantalla de espera).
 
+**GitHub Actions descartado, reemplazado por UptimeRobot (Issue #007
+cerrado, handoff del CEO, 2026-07-16)**: el fix de `*/10` de arriba **no
+alcanzó** — el CEO verificó un cold start real posterior al ajuste, la
+app se siguió durmiendo. Confirma que la causa nunca fue el valor del
+intervalo, sino la imprecisión de GitHub Actions en sí para ejecutar
+`schedule` con la frecuencia configurada. GitHub Actions queda
+**descartado** como mecanismo de keep-alive:
+- `.github/workflows/keep-alive.yml` **eliminado** del repo — no convive
+  con el mecanismo nuevo, un cron que no cumple su frecuencia no sirve ni
+  como respaldo.
+- Mecanismo vigente: **UptimeRobot** (servicio externo gratuito), monitor
+  HTTP cada 5 minutos contra `https://facturas-saas.onrender.com/health`
+  en producción. Configurado a mano por el CEO **fuera del repo** (su
+  propia cuenta) — **no hay rastro de esto en el código**, una sesión
+  futura que busque el keep-alive tiene que revisar la cuenta de
+  UptimeRobot del CEO, no el repo.
+- Se mantiene sin cambios: el endpoint `GET /health`
+  (`app/blueprints/api.py`, ahora consumido por UptimeRobot), el ADR-0005
+  (pantalla de espera, cobertura de cold starts residuales), y el plan
+  pago de Render como solución de fondo postergada hasta la salida a
+  vender (ADR-0001) — UptimeRobot es un workaround del free tier, no lo
+  reemplaza conceptualmente.
+- **Pendiente de confirmación real**: que UptimeRobot mantenga la app
+  despierta durante un período largo sin cold starts — la verifica el CEO
+  desde su cuenta y el uso real. Detalle completo en la sección
+  "Reemplazo 2026-07-16" de `docs/decisions/0013-keep-alive-render-free.md`.
+
+**Instrumentación de tiempos por etapa (ADR-0014 repo general, handoff
+del CEO, 2026-07-16)**: antes de optimizar el tiempo de espera entre
+sacar la foto y ver los datos extraídos, se decidió medir primero. Sesión
+de solo instrumentación, sin optimizaciones ni cambios de comportamiento
+visible. Implementado:
+- `POST /api/extract`: una línea de log por foto (`TIEMPOS extract
+  [n/total] — imagen: …MB | recepción: …s | gemini: …s (reintentos: N,
+  último intento: …s) | duplicados: …s | total: …s`) más una línea de
+  resumen del lote (lectura de la planilla + total del request).
+- `POST /api/invoices`: una línea con la duración de la escritura en el
+  Sheet, marcando si disparó la creación de la pestaña del año, y la
+  duración total.
+- Interruptor `LOG_TIEMPOS` (env var), **default activado también en
+  producción** (decisión del CEO — importan los tiempos reales).
+- Logger propio (`app/services/tiempos.py`) que no propaga al root
+  logger, para no arrastrar el nivel INFO de librerías de terceros
+  (gspread, google-genai). Ninguna línea loguea datos sensibles del
+  comprobante (solo tiempos, tamaños, contadores).
+- **Modelo de Gemini configurado hoy**: `gemini-2.5-flash` (default de
+  código y valor explícito en `render.yaml`, coinciden).
+- **Probado en este entorno** con Flask test client + mocks de
+  Gemini/Sheets (sin credenciales reales): tanda de 2 fotos genera 2
+  líneas identificables + resumen de lote, guardado genera su línea
+  marcando pestaña creada, `LOG_TIEMPOS=false` no loguea nada, respuestas
+  HTTP sin cambios de contenido/formato. **No probado contra las APIs
+  reales** — pendiente de confirmar en producción que las líneas
+  aparecen en los logs de Render con datos reales.
+- **Observación de optimización, no implementada** (para que decida el
+  CEO con los datos en la mano): cada guardado llama a
+  `asegurar_pestana_del_anio()`, que hace una llamada a la API de Sheets
+  para confirmar que la pestaña ya existe (caso normal) antes de escribir
+  — candidato a cachear si los tiempos muestran que pesa. Detalle
+  completo en `docs/decisions/0014-instrumentacion-tiempos-extraccion.md`.
+
 ## Current phase
 Phase 1 en producción (`https://facturas-saas.onrender.com`), planilla v2
 (23 columnas) confirmada con datos reales. **Re-priorizado el camino a
@@ -621,3 +682,22 @@ auditoría hecha, 3 textos corregidos.
   configuración. Fix: cron a `*/10` (decisión del CEO) + `--fail` al
   curl. Riesgo señalado sin resolver con garantía — si los gaps siguen
   superando ~15 min, hace falta una alternativa (decisión del CEO).
+- 2026-07-16: Issue #007 cerrado (handoff del CEO) — el fix de `*/10` no
+  alcanzó, cold start real confirmado después del ajuste. GitHub Actions
+  descartado como mecanismo de keep-alive; `.github/workflows/keep-alive.yml`
+  eliminado. Reemplazado por UptimeRobot (monitor HTTP cada 5 min contra
+  `/health`), configurado por el CEO fuera del repo, sin rastro en el
+  código. El endpoint `/health` y el ADR-0005 (pantalla de espera) se
+  mantienen sin cambios.
+- 2026-07-16: ADR-0014 (repo general, handoff del CEO) — instrumentación
+  de tiempos por etapa en `/api/extract` y `/api/invoices` (recepción,
+  llamada a Gemini con reintentos, chequeo de duplicados, escritura en
+  Sheets), sesión de solo medición, sin optimizar nada. Flag
+  `LOG_TIEMPOS` default activado incluso en producción (decisión del
+  CEO). Logger propio sin propagar al root logger, sin datos sensibles
+  del comprobante. Probado con mocks (Flask test client); pendiente
+  confirmar en logs reales de Render. Modelo de Gemini configurado hoy:
+  `gemini-2.5-flash`. Observación de optimización sin implementar:
+  `asegurar_pestana_del_anio()` pega a la API de Sheets en cada guardado
+  incluso cuando la pestaña ya existe.
+  mantienen sin cambios.

@@ -253,8 +253,16 @@ error no hacía fallar el paso, quedaba en verde igual por el `|| true`
 existente — no fue la causa de este incidente puntual, pero era un hueco
 real). Detalle completo en el ADR-0013.
 
-**Estado:** ⚠️ mitigado, no resuelto con garantía — la causa de fondo
-(GitHub Actions no es confiable para crons sub-horarios) sigue vigente;
-`*/10` reduce el riesgo pero no lo elimina. Pendiente: verificar los gaps
-reales de las próximas horas. Si se repite, evaluar alternativa (servicio
-externo de pings, plan pago de Render) — decisión del CEO.
+**Estado:** ✅ resuelto — el fix de `*/10` **no alcanzó**: el CEO verificó
+un cold start real posterior al ajuste, la app se siguió durmiendo.
+Confirma que la causa nunca fue el valor del intervalo, fue la
+imprecisión de GitHub Actions en sí. Se reemplazó el mecanismo completo:
+GitHub Actions descartado, `.github/workflows/keep-alive.yml` eliminado
+del repo, mecanismo nuevo es **UptimeRobot** (servicio externo dedicado a
+esto, monitor HTTP cada 5 min contra `/health` en producción,
+configurado a mano por el CEO **fuera del repo** — sin rastro en el
+código). El endpoint `/health` se mantiene, ahora lo consume UptimeRobot.
+Detalle completo en la sección "Reemplazo 2026-07-16" del
+[ADR-0013](decisions/0013-keep-alive-render-free.md). Pendiente:
+confirmación real de que UptimeRobot mantiene la app despierta durante
+un período largo — la corre el CEO desde su cuenta.

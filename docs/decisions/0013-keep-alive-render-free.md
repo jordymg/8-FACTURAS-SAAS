@@ -1,9 +1,11 @@
-# ADR-0013: Keep-alive para Render free tier vía GitHub Actions
+# ADR-0013: Keep-alive para Render free tier
 
 **Date:** 2026-07-16
-**Status:** ADOPTADA e IMPLEMENTADA — ajustada el mismo día (ver
-"Corrección 2026-07-16" al final) tras confirmarse que no cumplía su
-función. Ver también [Issue #007](../ISSUES.md).
+**Status:** ADOPTADA e IMPLEMENTADA — mecanismo **reemplazado** el mismo
+día tras dos intentos fallidos con GitHub Actions (ver "Corrección
+2026-07-16" y "Reemplazo 2026-07-16" al final). Mecanismo vigente:
+**UptimeRobot**, configurado fuera del repo. Ver también
+[Issue #007](../ISSUES.md).
 
 ## Contexto
 Render free tier duerme el servicio tras ~15 minutos sin tráfico entrante;
@@ -111,3 +113,60 @@ algún momento, la causa de fondo (crons sub-horarios de GitHub Actions no
 son confiables) sigue vigente y hay que evaluar una alternativa distinta
 (servicio externo de pings, plan pago de Render) — decisión del CEO, no
 implementada acá.
+
+## Reemplazo 2026-07-16: GitHub Actions descartado, mecanismo pasa a UptimeRobot
+
+El riesgo señalado en la corrección anterior se confirmó: el CEO verificó
+un cold start real **posterior** al fix de `*/10` — la app se siguió
+durmiendo. El ajuste de intervalo no alcanzó, porque la causa de fondo
+nunca fue el valor del cron, fue la imprecisión de GitHub Actions para
+ejecutar `schedule` con la frecuencia configurada (gaps reales medidos de
+99 y 103 minutos contra los 14 configurados originalmente — ver
+"Corrección" arriba). **GitHub Actions queda descartado como mecanismo de
+keep-alive**, no solo ajustado.
+
+**Decisión del CEO:** reemplazar por **UptimeRobot** (uptimerobot.com),
+servicio externo gratuito dedicado a monitoreo — la puntualidad del ping
+es su producto (a diferencia de GitHub Actions, donde el `schedule` es
+una feature secundaria de una plataforma de CI/CD). Monitor HTTP(s) cada
+5 minutos contra la URL pública de producción
+(`https://facturas-saas.onrender.com/health`). Suma como beneficio extra
+alertas por mail si la app deja de responder de verdad (no solo
+keep-alive, también monitoreo básico de disponibilidad).
+
+**Importante — este mecanismo vive FUERA del repo:** la cuenta y el
+monitor de UptimeRobot los configura el CEO a mano en
+uptimerobot.com, no hay ningún archivo de config ni credencial en este
+código. **Una sesión futura que busque el keep-alive en el repo no va a
+encontrar rastro de él** — si `/health` deja de recibir tráfico regular y
+la app se vuelve a dormir, lo primero a revisar es el estado del monitor
+en la cuenta de UptimeRobot del CEO, no el código.
+
+**Qué se elimina:** `.github/workflows/keep-alive.yml` (borrado del
+repo). No convive con UptimeRobot — un cron que no cumple su frecuencia
+no sirve ni como respaldo, y dejarlo activo solo generaría ruido en
+Actions.
+
+**Qué se mantiene sin cambios:**
+- El endpoint `GET /health` en `app/blueprints/api.py` — sigue siendo la
+  URL que se pinguea, ahora consumida por UptimeRobot en vez del
+  workflow.
+- El [ADR-0005](0005-pantalla-espera-cold-start.md) (pantalla de espera)
+  — sigue como cobertura de los cold starts residuales que un keep-alive
+  externo no puede eliminar del todo (deploys, reinicios, el propio
+  margen entre pings).
+- El plan pago de Render como solución definitiva de fondo, postergada
+  hasta la salida a vender ([ADR-0001](0001-stack.md)) — UptimeRobot es
+  un workaround del free tier, no la reemplaza conceptualmente.
+
+**Alternativas consideradas (revisadas contra la decisión anterior):** la
+entrada "Servicio externo de pings (tipo UptimeRobot)" en "Alternativas
+consideradas" arriba quedó obsoleta — se había descartado por agregar un
+tercero cuando GitHub Actions parecía alcanzar. Con GitHub Actions
+descartado por imprecisión real y medida, ese argumento ya no aplica: la
+alternativa que quedaba en pie es justamente la que se adopta acá.
+
+**Pendiente de verificación real:** que UptimeRobot efectivamente
+mantenga la app despierta durante un período largo (horas/días) sin cold
+starts — pendiente de que el CEO lo confirme desde su cuenta y desde el
+uso real de la app.

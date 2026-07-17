@@ -1,7 +1,6 @@
 import json
 import os
 import time
-from typing import Optional
 
 from google import genai
 from google.genai import errors as genai_errors
@@ -28,11 +27,24 @@ class GeminiSobrecargadoError(Exception):
     vía str(e), sin necesitar saber nada de reintentos."""
 
 
-def _generate_content_con_reintentos(client: genai.Client, **kwargs):
+def _generate_content_con_reintentos(client: genai.Client, **kwargs) -> tuple:
+    """Devuelve (response, tiempos) — tiempos trae reintentos, duración total
+    (todos los intentos + esperas de backoff) y duración del último intento
+    (el exitoso) por separado, para poder distinguir en los logs "Gemini
+    tardó" de "hubo reintentos" (instrumentación, ver ADR-0014)."""
     intentos_fallidos = 0
+    t_inicio = time.monotonic()
     while True:
+        t_intento = time.monotonic()
         try:
-            return client.models.generate_content(**kwargs)
+            response = client.models.generate_content(**kwargs)
+            ahora = time.monotonic()
+            tiempos = {
+                "reintentos": intentos_fallidos,
+                "duracion_total": ahora - t_inicio,
+                "duracion_ultimo_intento": ahora - t_intento,
+            }
+            return response, tiempos
         except genai_errors.ServerError:
             if intentos_fallidos >= MAX_REINTENTOS_503:
                 raise GeminiSobrecargadoError(MENSAJE_ERROR_FINAL) from None
@@ -67,10 +79,12 @@ _PROMPT = (
 )
 
 
-def extract_invoice(image_bytes: bytes, mime_type: str = "image/jpeg") -> Optional[dict]:
+def extract_invoice(image_bytes: bytes, mime_type: str = "image/jpeg") -> tuple[dict, dict]:
+    """Devuelve (campos_extraídos, tiempos_gemini) — ver docstring de
+    `_generate_content_con_reintentos` para el contenido de `tiempos_gemini`."""
     client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
     model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-    response = _generate_content_con_reintentos(
+    response, tiempos_gemini = _generate_content_con_reintentos(
         client,
         model=model,
         contents=[
@@ -105,4 +119,4 @@ def extract_invoice(image_bytes: bytes, mime_type: str = "image/jpeg") -> Option
             },
         ),
     )
-    return json.loads(response.text)
+    return json.loads(response.text), tiempos_gemini

@@ -1,10 +1,11 @@
 import datetime
 import os
+import time
 
 from flask import Blueprint, jsonify, request, session
 
 from app.models import User, db
-from app.services import sheets
+from app.services import sheets, tiempos
 from app.services.fields import FIELD_KEYS
 from app.services.formats import MIME_EXTENSIONS
 from app.services.gemini import extract_invoice
@@ -68,6 +69,7 @@ def connect_sheet():
 
 @api_bp.route("/api/extract", methods=["POST"])
 def extract():
+    t_request_inicio = time.monotonic()
     user = _current_user()
     if not user:
         return jsonify({"error": "unauthorized"}), 401
@@ -82,14 +84,18 @@ def extract():
     # Se lee la planilla una sola vez por lote (no por archivo) para chequear
     # duplicados (ADR-0009) — evita releer todo el Sheet varias veces si se
     # suben varias fotos juntas.
+    t_lectura_inicio = time.monotonic()
     invoices_existentes = sheets.list_invoices(user.spreadsheet_id) if user.spreadsheet_id else []
+    duracion_lectura_planilla = time.monotonic() - t_lectura_inicio
     # Además del Sheet, dos fotos de la MISMA tanda pueden ser la misma
     # factura (ninguna está guardada todavía, así que find_duplicate contra
     # el Sheet no las vería entre sí).
     vistos_en_lote = set()
 
     resultados = []
-    for file in files:
+    total_fotos = len(files)
+    for idx, file in enumerate(files, start=1):
+        t_foto_inicio = time.monotonic()
         mime_type = file.content_type or "image/jpeg"
         if mime_type not in MIME_EXTENSIONS:
             resultados.append({"nombre": file.filename, "ok": False,
@@ -98,16 +104,24 @@ def extract():
         # MVP sin persistencia: la imagen se lee en memoria solo para mandarla
         # a Gemini y se descarta acá — no se guarda en ningún lado.
         image_bytes = file.read()
+        tamano_mb = len(image_bytes) / (1024 * 1024)
+        duracion_recepcion = time.monotonic() - t_foto_inicio
         try:
-            fields = extract_invoice(image_bytes, mime_type)
+            fields, tiempos_gemini = extract_invoice(image_bytes, mime_type)
         except Exception as e:
             resultados.append({"nombre": file.filename, "ok": False, "error": str(e)})
+            tiempos.log(
+                f"TIEMPOS extract [{idx}/{total_fotos}] — imagen: {tamano_mb:.1f}MB | "
+                f"recepción: {duracion_recepcion:.2f}s | gemini: error | "
+                f"total: {time.monotonic() - t_foto_inicio:.2f}s"
+            )
             continue
 
         # campos_inciertos no es un dato del comprobante — es la señal de duda
         # de la IA (ADR-0007), se manda aparte para que el frontend resalte
         # esos campos en rojo en vez de tratarlos como un valor más.
         inciertos = fields.pop("campos_inciertos", [])
+        t_dup_inicio = time.monotonic()
         duplicado = sheets.find_duplicate(
             invoices_existentes, fields.get("proveedor"), fields.get("numero"), fields.get("fecha")
         )
@@ -120,16 +134,34 @@ def extract():
             if clave in vistos_en_lote:
                 duplicado = "__MISMA_TANDA__"  # ver static/js/app.js: mensaje distinto al de un duplicado en el Sheet
             vistos_en_lote.add(clave)
+        duracion_duplicados = time.monotonic() - t_dup_inicio
         resultados.append({
             "nombre": file.filename, "ok": True, "fields": fields,
             "inciertos": inciertos, "duplicado": duplicado,
         })
+
+        tiempos.log(
+            f"TIEMPOS extract [{idx}/{total_fotos}] — imagen: {tamano_mb:.1f}MB | "
+            f"recepción: {duracion_recepcion:.2f}s | "
+            f"gemini: {tiempos_gemini['duracion_total']:.2f}s "
+            f"(reintentos: {tiempos_gemini['reintentos']}, "
+            f"último intento: {tiempos_gemini['duracion_ultimo_intento']:.2f}s) | "
+            f"duplicados: {duracion_duplicados:.2f}s | "
+            f"total: {time.monotonic() - t_foto_inicio:.2f}s"
+        )
+
+    tiempos.log(
+        f"TIEMPOS extract lote — fotos: {total_fotos} | "
+        f"lectura_planilla: {duracion_lectura_planilla:.2f}s | "
+        f"total_lote: {time.monotonic() - t_request_inicio:.2f}s"
+    )
 
     return jsonify(resultados)
 
 
 @api_bp.route("/api/invoices", methods=["POST"])
 def save_invoice():
+    t_request_inicio = time.monotonic()
     user = _current_user()
     if not user:
         return jsonify({"error": "unauthorized"}), 401
@@ -140,13 +172,21 @@ def save_invoice():
     row = {key: data.get(key, "") for key in FIELD_KEYS}
     row["cargada_el"] = datetime.datetime.now().isoformat()
 
+    t_sheet_inicio = time.monotonic()
     try:
-        sheets.append_invoice(user.spreadsheet_id, row)
+        pestana_creada = sheets.append_invoice(user.spreadsheet_id, row)
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 502
+    duracion_sheet = time.monotonic() - t_sheet_inicio
 
     registrar_factura_cargada(user)
     db.session.commit()
+
+    tiempos.log(
+        f"TIEMPOS invoices — sheet: {duracion_sheet:.2f}s"
+        f"{' (pestaña del año creada en este guardado)' if pestana_creada else ''} | "
+        f"total: {time.monotonic() - t_request_inicio:.2f}s"
+    )
 
     return jsonify({"ok": True})
 

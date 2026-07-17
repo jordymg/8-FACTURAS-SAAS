@@ -184,7 +184,7 @@ def rename_spreadsheet(spreadsheet_id: str, titulo_actual: str, titulo_nuevo: st
         return titulo_actual
 
 
-def asegurar_pestana_del_anio(spreadsheet_id: str, fecha: datetime.date) -> str:
+def asegurar_pestana_del_anio(spreadsheet_id: str, fecha: datetime.date) -> bool:
     """Crea la pestaña del año calendario de `fecha` si todavía no existe
     (ADR-0003 área Planillas, versión 2026-07-12: una sola pestaña por
     AÑO, no por mes — ej. toda la factura de 2026 vive en una pestaña
@@ -193,10 +193,12 @@ def asegurar_pestana_del_anio(spreadsheet_id: str, fecha: datetime.date) -> str:
     - Cada vez que se guarda una factura (`POST /api/invoices`), como
       chequeo barato — si ya cambiamos de año y todavía no existe esa
       pestaña, se crea ahí mismo.
-    Devuelve el nombre de la pestaña (exista ya, o se acabe de crear)."""
+    Devuelve True si la pestaña se creó en este llamado, False si ya
+    existía (instrumentación de tiempos, ver ADR-0014 — un guardado que
+    dispara la creación de una pestaña nueva tarda bastante más)."""
     nombre = str(fecha.year)
-    crear_pestanas(spreadsheet_id, [nombre])
-    return nombre
+    creadas = crear_pestanas(spreadsheet_id, [nombre])
+    return nombre in creadas
 
 
 def crear_pestanas(spreadsheet_id: str, nombres: list[str]) -> list[str]:
@@ -205,8 +207,8 @@ def crear_pestanas(spreadsheet_id: str, nombres: list[str]) -> list[str]:
     Planillas — alcance acotado: solo crea las pestañas,
     `append_invoice`/`list_invoices`/`find_duplicate` siguen usando
     `sheet1` únicamente, no leen/escriben estas pestañas todavía).
-    Devuelve `nombres` tal cual (ya existieran o se acaben de crear) — no
-    hace nada si ya están todas.
+    Devuelve la sublista de `nombres` que efectivamente se creó en este
+    llamado (vacía si ya existían todas) — no hace nada si ya están todas.
 
     IMPORTANTE — por qué va todo en 2 llamadas a la API, no N×7: crear una
     pestaña con `add_worksheet` + todo su formato (negrita, fecha, moneda,
@@ -224,7 +226,7 @@ def crear_pestanas(spreadsheet_id: str, nombres: list[str]) -> list[str]:
     existentes = {ws.title: ws.id for ws in spreadsheet.worksheets()}
     a_crear = [n for n in nombres if n not in existentes]
     if not a_crear:
-        return nombres
+        return []
 
     # sheetId nuevos que no choquen con los que ya existen en la planilla
     # (se pueden pre-asignar en el request de addSheet, y los requests de
@@ -286,7 +288,7 @@ def crear_pestanas(spreadsheet_id: str, nombres: list[str]) -> list[str]:
         "data": [{"range": f"'{nombre}'!A1:{last_col}1", "values": [ROW_LABELS]} for nombre in a_crear],
     })
 
-    return nombres
+    return a_crear
 
 
 def _protect_header_once(sheet: gspread.Worksheet, last_col: str) -> None:
@@ -340,14 +342,16 @@ def _to_number_or_blank(value):
         return value
 
 
-def append_invoice(spreadsheet_id: str, row: dict) -> None:
+def append_invoice(spreadsheet_id: str, row: dict) -> bool:
     """Guarda la factura en la pestaña del AÑO al que corresponde su fecha
     (ADR-0003 área Planillas — ya no se guarda en `sheet1`/"Hoja 1"). Si esa
     pestaña todavía no existe (ej. factura de un año que recién empieza),
-    se crea acá mismo con el encabezado canónico."""
+    se crea acá mismo con el encabezado canónico. Devuelve True si este
+    guardado disparó la creación de esa pestaña (instrumentación de
+    tiempos, ver ADR-0014)."""
     fecha = str(row.get("fecha", ""))
     anio = int(fecha[:4]) if fecha[:4].isdigit() else datetime.date.today().year
-    asegurar_pestana_del_anio(spreadsheet_id, datetime.date(anio, 1, 1))
+    pestana_creada = asegurar_pestana_del_anio(spreadsheet_id, datetime.date(anio, 1, 1))
     sheet = _client().open_by_key(spreadsheet_id).worksheet(str(anio))
 
     values = []
@@ -363,6 +367,7 @@ def append_invoice(spreadsheet_id: str, row: dict) -> None:
     next_row = _real_row_count(sheet) + 1
     last_col = _last_col_letter(len(ROW_KEYS))
     sheet.update([values], range_name=f"A{next_row}:{last_col}{next_row}", value_input_option="USER_ENTERED")
+    return pestana_creada
 
 
 _SHEETS_EPOCH = datetime.date(1899, 12, 30)
