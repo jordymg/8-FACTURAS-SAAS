@@ -67,22 +67,41 @@ empiece a provisionar, o el login/HTTPS no van a funcionar.
 
 ## 2. Provisión del sistema base ⏳ (Claudito)
 
+> ⚠️ **Este VPS NO está vacío.** Ya sirve `mcfly.ar` y `code.mcfly.ar` en
+> producción (PM2). Todo lo de esta sección es **aditivo y no disruptivo**:
+> nada de `apt upgrade` global (reiniciaría nginx/openssl/servicios que
+> están sirviendo esos sitios), no se pisan configs existentes, y antes de
+> tocar nginx/certbot/ufw se **inspecciona** qué hay ya montado (§2.1).
+
+### 2.1 Inspección previa (antes de instalar/configurar nada)
 ```bash
-sudo apt update && sudo apt upgrade -y
-sudo apt install -y python3 python3-venv python3-pip \
-     postgresql postgresql-contrib \
-     nginx \
-     certbot python3-certbot-nginx \
-     git ufw
+sudo ss -tlnp | grep -E ':80|:443|:8000'   # quién escucha en esos puertos
+which nginx caddy apache2 2>/dev/null        # qué reverse proxy hay
+pm2 list                                     # qué corre en PM2 y en qué puerto
+ls /etc/letsencrypt/live 2>/dev/null         # ¿ya hay certbot / Let's Encrypt?
+systemctl list-timers | grep -i certbot      # ¿renovación automática ya activa?
+sudo ufw status                              # ¿firewall activo o inactivo?
+```
+**Reportar el resultado (handoff) antes de seguir.** Define tres cosas: si
+se **reusa** el nginx/certbot existentes (lo más probable) en vez de
+instalarlos, qué **puerto local libre** usa gunicorn (§4.2), y si `ufw`
+está en juego o no (§2.3).
+
+### 2.2 Paquetes (solo los nuevos, sin upgrade global)
+```bash
+sudo apt update                      # refresca listas, no cambia lo instalado
+sudo apt install -y postgresql postgresql-contrib python3-venv python3-pip
+# nginx / certbot: instalar SOLO si la inspección mostró que NO están ya.
+# Si ya frontean mcfly.ar/code.mcfly.ar, están instalados — se reusan.
 ```
 
-Firewall:
-```bash
-sudo ufw allow OpenSSH
-sudo ufw allow 'Nginx Full'      # abre 80 y 443
-sudo ufw enable
-sudo ufw status
-```
+### 2.3 Firewall (con cuidado, o directamente no tocar)
+- Si `ufw` **ya está activo**: no lo reconfigures. Solo verificá que SSH y
+  80/443 sigan permitidos (`sudo ufw status`).
+- Si `ufw` está **inactivo** y los sitios andan sin él: **no lo actives**
+  como parte de esta migración. Meter un default-deny en un box en
+  producción puede sacar de aire `mcfly.ar`/`code.mcfly.ar` o cerrarte el
+  SSH. Es una decisión aparte, con Jordi — fuera del alcance de este paso.
 
 ---
 
@@ -147,6 +166,10 @@ WantedBy=multi-user.target
 > gunicorn son 30s, que podían no alcanzar cuando varios archivos de una
 > tanda golpean 503 de Gemini y se reintentan). Acá se fija en el systemd,
 > ya no en `render.yaml`.
+>
+> ⚠️ **El puerto `8000` puede estar ocupado** por PM2 (`code.mcfly.ar` u
+> otro). Usar un puerto local **libre** confirmado en la inspección (§2.1) —
+> y que coincida con el `proxy_pass` de nginx (§4.3).
 
 ```bash
 sudo systemctl daemon-reload
@@ -155,6 +178,15 @@ sudo systemctl status facturas
 ```
 
 ### 4.3 nginx (reverse proxy)
+
+> ⚠️ **nginx ya sirve otros sitios en este box** (si la inspección §2.1 lo
+> confirma). Esto **agrega un `server` block nuevo** para
+> `facturas.mcfly.ar` — no toca los blocks de `mcfly.ar`/`code.mcfly.ar`.
+> Ojo si esos sitios los frontea **Caddy o Apache** en vez de nginx (lo
+> dice §2.1): en ese caso no metas un nginx en paralelo peleando por 80/443
+> — reusá el reverse proxy que ya está (un site/vhost equivalente), y
+> reportalo antes. `proxy_pass` apunta al puerto libre elegido en §4.2.
+
 `/etc/nginx/sites-available/facturas`:
 ```nginx
 server {
@@ -188,11 +220,17 @@ sudo nginx -t && sudo systemctl reload nginx
 ```
 
 ### 4.4 TLS (certbot)
+
+> Si la inspección §2.1 mostró que **certbot ya está instalado** (probable:
+> `mcfly.ar`/`code.mcfly.ar` ya usan HTTPS), NO se reinstala — solo se
+> agrega el certificado del dominio nuevo. El comando es el mismo:
+
 ```bash
 sudo certbot --nginx -d facturas.mcfly.ar
 ```
-certbot reescribe el `server` para 443 + redirección 80→443 e instala un
-**systemd timer de auto-renovación** (`certbot.timer`). Verificar:
+certbot reescribe el `server` para 443 + redirección 80→443 e instala (o
+reusa, si ya existe) un **systemd timer de auto-renovación**
+(`certbot.timer`). Verificar:
 ```bash
 sudo systemctl list-timers | grep certbot
 sudo certbot renew --dry-run
