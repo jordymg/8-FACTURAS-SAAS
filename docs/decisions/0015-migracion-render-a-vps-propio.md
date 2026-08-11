@@ -43,8 +43,11 @@ Migrar la app de Render a un VPS propio. Definiciones tomadas:
    ya corre en producción, el código ya lo habla (`psycopg2`, el
    `postgres://`→`postgresql://` en `app/__init__.py`), así que no se
    re-testea nada; (b) contempla el crecimiento futuro de la DB sin un
-   segundo cambio de motor; (c) migrar los datos actuales es un
-   `pg_dump`/`pg_restore` limpio de Postgres a Postgres.
+   segundo cambio de motor. **No se migran los datos del hosting anterior**
+   (decisión del CEO, 2026-08-12): arranca con una DB vacía y los usuarios
+   se re-loguean y reconectan su planilla una vez — la DB solo guardaba
+   identidad/planilla/contador, los datos reales viven en el Sheet de cada
+   cliente (ver runbook §6).
 4. **Deploy manual.** No se reconstruye el auto-deploy de Render por ahora.
    El deploy es un `git pull` + restart del servicio (scriptcito en el
    runbook). El auto-deploy (webhook o similar) se agrega más adelante si

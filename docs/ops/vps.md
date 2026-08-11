@@ -67,13 +67,13 @@ empiece a provisionar, o el login/HTTPS no van a funcionar.
    ```
    https://facturas.mcfly.ar/oauth2callback
    ```
-   **No borrar la URI de Render todavía** — se saca recién después del
-   cutover confirmado (§7), para poder volver atrás sin quedarse sin login.
+   La URI del hosting anterior quedó obsoleta (decomisionado, ver §0) — se
+   puede borrar cuando quieras; es inofensiva si queda.
 3. **Secretos a mano** para pegar en el server (§5). Los **valores** los
    pone el CEO; ni Claudito ni Claude Code los tocan:
-   `SECRET_KEY`, `GEMINI_API_KEY`, `GOOGLE_CLIENT_ID`,
-   `GOOGLE_CLIENT_SECRET`, el JSON de la Service Account, y la connection
-   string de la DB de Render (para el `pg_dump` de §6).
+   `GEMINI_API_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, y el JSON
+   de la Service Account. La `SECRET_KEY` la genera Claudito en el server
+   (`openssl rand -hex 32`), no la maneja el CEO.
 
 ---
 
@@ -310,26 +310,25 @@ Notas:
 
 ---
 
-## 6. Migración de datos ⏳ (Claudito ejecuta, CEO da la connection string 🔒)
+## 6. Migración de datos — NO se hace (decisión del CEO, 2026-08-12)
 
-Postgres → Postgres, limpio:
+**No hay migración de datos.** El hosting anterior se decomisionó (ver §0) y
+su base **no se trae**. La DB de Postgres local **arranca vacía**: la app
+crea las tablas sola al levantar (`db.create_all()` + `_ensure_schema()` en
+`app/__init__.py`).
 
-```bash
-# 1. Dump desde Render (connection string externa que da el CEO)
-pg_dump "postgresql://<render-external-connection-string>" -Fc -f /tmp/facturas.dump
+Por qué es aceptable: esa DB solo guarda identidad, planilla conectada y
+contador mensual — **los datos de las facturas viven en el Google Sheet de
+cada cliente**, no acá. Al arrancar limpio, cada usuario simplemente vuelve
+a loguearse (su fila se recrea sola en el `oauth2callback`) y **reconecta su
+planilla una vez** en `/app/config`. Se pierde solo el link a la planilla y
+el contador del mes, sin impacto real en la etapa actual (cuentas de prueba,
+sin clientes reales conectados).
 
-# 2. Restore en el Postgres local
-pg_restore --no-owner --role=facturas -d \
-  "postgresql://facturas:<password>@127.0.0.1:5432/facturas" /tmp/facturas.dump
-
-# 3. Borrar el dump (tiene datos de usuarios)
-shred -u /tmp/facturas.dump
-```
-
-> La tabla real a migrar es `users` (identidad, planilla conectada,
-> contador). Si algo del schema se desincroniza, el arranque de la app lo
-> reconcilia (`_ensure_schema`), pero el objetivo es que el restore ya
-> traiga todo.
+Consecuencia operativa: **desaparece el problema de orden restore-vs-restart**
+— sin `pg_restore --clean`, no hay riesgo de pisar usuarios. El orden queda:
+`sa.json` real + valores del env (§5) → `git pull` en `/srv/facturas-saas` →
+`systemctl restart facturas` (§9.1) → `systemctl status`.
 
 ---
 
