@@ -72,10 +72,10 @@ Migrar la app de Render a un VPS propio. Definiciones tomadas:
    HTTPS.
 8. **Google OAuth.** Se agrega el redirect URI
    `https://facturas.mcfly.ar/oauth2callback` en Google Cloud Console (la
-   ruta de callback de la app es `/oauth2callback`). La URI de Render se
-   **mantiene** durante toda la transición y se saca recién después del
-   cutover confirmado, para poder volver atrás sin quedarse sin login. Los
-   scopes y el resto del flujo no cambian (login solo de identidad, ver
+   ruta de callback de la app es `/oauth2callback`). El VPS pasa a ser la
+   única producción (ver Consecuencias — el hosting anterior se decomisiona,
+   sin rollback). Los scopes y el resto del flujo no cambian (login solo de
+   identidad, ver
    [ADR-0004](0004-service-account-sheets.md) y
    [ADR-0012](0012-sesion-90-dias-oauth-sin-reconsentimiento.md)).
 
@@ -135,10 +135,12 @@ El servidor tiene una instancia de Claude CLI instalada (apodada
   (reencuadrar la justificación solo a la latencia de Gemini),
   `docs/ARCHITECTURE.md` (fila Hosting: Render → VPS), y `docs/STATUS.md`
   al cerrar.
-- **Reversible durante la transición:** mientras Render siga levantado y su
-  redirect URI siga registrado, revertir es volver a apuntar el DNS. Render
-  se deja en standby unos días como red de seguridad y se da de baja recién
-  después de confirmar que el VPS anda estable.
+- **Sin red de rollback (decisión del CEO, 2026-08-11):** el hosting
+  anterior se decomisiona **ya**, no se deja en standby. El VPS es la única
+  producción desde el cutover, así que la prueba de login real + una carga
+  de factura (runbook §7) es el go/no-go: si falla, se arregla sobre el VPS,
+  no hay a dónde volver. Riesgo asumido a conciencia por la etapa actual
+  (venta a conocidos, pocos usuarios logueados).
 - **Pendiente de ejecución y verificación real:** todo. Este ADR fija la
   decisión y el plan; ninguna fase se ejecutó todavía. El estado de avance
   vive en `docs/STATUS.md` y el detalle operativo en el runbook.

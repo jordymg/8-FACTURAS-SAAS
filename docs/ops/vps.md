@@ -345,9 +345,9 @@ shred -u /tmp/facturas.dump
    ya no hace falta, el VPS no duerme
    ([ADR-0013](../decisions/0013-keep-alive-render-free.md), sección
    "Retiro 2026-08-11").
-3. Dejar Render **en standby unos días** como red de seguridad. Recién
-   cuando el VPS demuestre estar estable: dar de baja el servicio de Render
-   y **sacar la URI de Render** de Google Console.
+3. El hosting anterior queda **decomisionado** (decisión del CEO,
+   2026-08-11) — no se deja standby, no hay rollback. El VPS es la única
+   producción desde este punto; el paso 1 es el go/no-go.
 
 ---
 
