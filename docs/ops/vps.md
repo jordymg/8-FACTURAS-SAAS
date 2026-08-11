@@ -39,6 +39,18 @@ facturas.mcfly.ar  ──►  nginx (:443, TLS Let's Encrypt)   [reverse proxy]
   viven acá — viven en el Google Sheet de cada cliente. La DB local guarda
   solo identidad, planilla conectada y contador.
 
+### Estado confirmado del VPS (inspección §2.1, 2026-08-11)
+El box **no es dedicado**: comparte con otros dos sitios en producción.
+Confirmado por Claudito:
+- **Reverse proxy:** solo **nginx** (sin Caddy/Apache) — se reusa, se agrega
+  un `server` block para `facturas.mcfly.ar` sin tocar los otros.
+- **certbot:** ya instalado, con timer de auto-renovación activo y certs de
+  `mcfly.ar` y `code.mcfly.ar` — no se reinstala, solo se agrega el cert del
+  dominio nuevo.
+- **ufw:** activo, con 22/80/443 permitidos — no se toca.
+- **PM2:** corre `cloudcli` (puerto 3001) y `losa-radiante` (puerto 3002).
+- **Puerto 8000 libre** → gunicorn lo usa (§4.2).
+
 ---
 
 ## 1. Prerrequisitos 🔒 (solo el CEO)
