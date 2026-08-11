@@ -350,6 +350,10 @@ como health check real; lo que se retira es el keep-alive/UptimeRobot).
 
 ## 10. Cómo se le pasa esto a Claudito
 
+Quién es Claudito y el reparto de trabajo completo (Jordi / Claude Code /
+Claudito) está en [`docs/ops/claudito.md`](claudito.md) — ese es el doc que
+Claudito lee primero para saber que él es Claudito.
+
 - Este runbook es **la tarea**: Claudito ejecuta las secciones ⏳ (§2, §3,
   §4, y su parte de §5, §6), no las 🔒 (esas las hace el CEO).
 - **Claudito no commitea al repo.** Si necesita ajustar algo del repo
