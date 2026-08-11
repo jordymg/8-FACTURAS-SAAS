@@ -296,6 +296,17 @@ Notas:
    más prolijo.
 4. El `.env.example` del repo documenta el set de vars para desarrollo
    local; este archivo es el de producción del VPS.
+5. **No copiar ciegamente el `.env` local a producción.** El `.env` de
+   desarrollo puede traer dos vars que **NO deben ir al VPS**:
+   - `OAUTHLIB_INSECURE_TRANSPORT=1` → **prohibida en producción.** Existe
+     para el `localhost` HTTP de desarrollo. El VPS tiene HTTPS real
+     (nginx/certbot) y `ProxyFix` ya le muestra a Flask el esquema `https`;
+     setearla acá permitiría el flujo OAuth sobre transporte inseguro (un
+     downgrade de seguridad). La producción de Render corre **sin** esta var
+     (no está en `render.yaml`) y el login funciona.
+   - `OAUTHLIB_RELAX_TOKEN_SCOPE=1` → tampoco de entrada (Render no la usa).
+     Agregar **solo si** el login real (§7) tira "Scope has changed"; es
+     benigna (relaja el chequeo de scopes que a veces molesta con Google).
 
 ---
 
