@@ -351,24 +351,25 @@ shred -u /tmp/facturas.dump
 
 ---
 
-## 8. Cambio de código pendiente (lo hace Claude Code en el repo, no Claudito)
+## 8. Cambio de código para la cookie Secure — HECHO
 
-El único cambio de código de la migración: en `app/__init__.py`, la cookie
-`Secure` hoy se activa con `os.getenv("RENDER") == "true"`. Hay que pasarlo
-a `PRODUCTION`.
+**Aplicado** en `app/__init__.py` (commit de esta migración, por Claude
+Code). La cookie `Secure` se activa ahora con `PRODUCTION=true` **o**
+`RENDER=true`:
 
-> ⚠️ **Cuidado con el auto-deploy de Render.** Mientras Render siga siendo
-> la producción activa, `master` se auto-deploya ahí. Si el cambio pasa a
-> mirar **solo** `PRODUCTION`, Render (que setea `RENDER`, no `PRODUCTION`)
-> se queda sin cookie `Secure`. Para no romper la producción viva durante
-> la transición, el cambio debe **aceptar las dos** vars:
-> ```python
-> app.config["SESSION_COOKIE_SECURE"] = (
->     os.getenv("PRODUCTION") == "true" or os.getenv("RENDER") == "true"
-> )
-> ```
-> Después del cutover, cuando Render se dé de baja, se simplifica a solo
-> `PRODUCTION`.
+```python
+app.config["SESSION_COOKIE_SECURE"] = (
+    os.getenv("PRODUCTION") == "true" or os.getenv("RENDER") == "true"
+)
+```
+
+Acepta las dos a propósito: mientras Render siga siendo la producción
+activa, `master` se auto-deploya ahí y `RENDER=true` mantiene la cookie
+Secure; en el VPS la activa `PRODUCTION=true` (§5). Por eso este cambio ya
+está en `master` sin romper Render.
+
+**Pendiente post-cutover:** cuando se dé de baja Render, simplificar a solo
+`PRODUCTION` (otro commit, lo hace Claude Code).
 
 ---
 

@@ -62,14 +62,19 @@ def create_app() -> Flask:
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
     # Sesión persistente de 90 días renovables (ver SESSION_LIFETIME_DIAS
-    # arriba). Render define la env var RENDER=true en todos sus servicios
-    # — se usa para distinguir producción (HTTPS real, cookie Secure) de
-    # local (HTTP en localhost, cookie no Secure o el navegador la descarta).
+    # arriba). La cookie Secure se activa en producción, detectada por
+    # PRODUCTION=true (VPS propio, ADR-0015) o RENDER=true (Render, que la
+    # pone sola). Durante la transición Render→VPS se aceptan las dos; una
+    # vez dado de baja Render, dejar solo PRODUCTION. En local no se setea
+    # ninguna → cookie no Secure, correcto para HTTP en localhost. Ver
+    # docs/ops/vps.md §8.
     app.config["PERMANENT_SESSION_LIFETIME"] = datetime.timedelta(days=SESSION_LIFETIME_DIAS)
     app.config["SESSION_REFRESH_EACH_REQUEST"] = True
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-    app.config["SESSION_COOKIE_SECURE"] = os.getenv("RENDER") == "true"
+    app.config["SESSION_COOKIE_SECURE"] = (
+        os.getenv("PRODUCTION") == "true" or os.getenv("RENDER") == "true"
+    )
 
     db_url = os.getenv("DATABASE_URL", "sqlite:///app.db")
     # Render supplies postgres:// but SQLAlchemy 1.4+ requires postgresql://
