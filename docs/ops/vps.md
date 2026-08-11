@@ -189,6 +189,15 @@ sudo systemctl enable --now facturas
 sudo systemctl status facturas
 ```
 
+> ⚠️ **Orden esperado:** la app hace `os.environ["SECRET_KEY"]` al arrancar
+> (`app/__init__.py`), así que **el service NO va a levantar hasta que §5
+> tenga el EnvironmentFile con los secretos**. Es esperado, no un bug: dejá
+> la unit creada y habilitada (`enable`), pero el arranque exitoso llega
+> recién con §5. Hasta entonces, nginx (§4.3) va a devolver `502` — también
+> esperado, porque no hay gunicorn escuchando todavía en el 8000. El orden
+> real es: §4.1–4.3 (dejar todo montado) → §5 (secretos) → recién ahí
+> `systemctl restart facturas` y la app queda arriba.
+
 ### 4.3 nginx (reverse proxy)
 
 > ⚠️ **nginx ya sirve otros sitios en este box** (si la inspección §2.1 lo
