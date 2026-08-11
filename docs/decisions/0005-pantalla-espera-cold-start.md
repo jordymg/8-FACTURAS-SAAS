@@ -1,9 +1,16 @@
-# ADR-0005: Pantalla de espera propia para el cold start de Render
+# ADR-0005: Pantalla de espera propia (latencia de Gemini)
+
+> Título original: "Pantalla de espera propia para el cold start de
+> Render". Reencuadrado el 2026-08-11 con la migración a VPS propio — ver
+> "Reencuadre 2026-08-11" al final. La pantalla sigue vigente, pero su
+> justificación pasó del cold start de Render a la latencia de Gemini.
 
 **Date:** 2026-07-07
 **Status:** ADOPTADA e IMPLEMENTADA (2026-07-15, handoff del CEO tras un
 503 real de Gemini en uso real). Ampliada 2026-07-07: mismo mecanismo se
 usa también para enmascarar reintentos de Gemini (ver abajo).
+**Reencuadrada 2026-08-11** (ADR-0015): se mantiene, ahora justificada por
+la latencia de Gemini, no por el cold start de Render.
 
 ## Contexto
 El plan free de Render duerme el servicio tras un rato sin uso (~30s de
@@ -158,3 +165,33 @@ de producción que no correspondía decidir unilateralmente).
 No implementado todavía: nada — el alcance del handoff quedó completo.
 Lo único pendiente es la decisión del CEO sobre el timeout de gunicorn
 (arriba).
+
+## Reencuadre 2026-08-11: migración a VPS propio (ADR-0015)
+
+Esta pantalla nació con **dos** justificaciones: (1) el cold start de
+Render free (el servicio dormido que tarda ~30s en despertar) y (2) la
+latencia propia de Gemini — ~7-8s típicos por foto, picos ocasionales, más
+los ~14s de sleep en el peor caso de reintentos ante un 503.
+
+Con la migración a un VPS propio ([ADR-0015](0015-migracion-render-a-vps-propio.md))
+**la justificación (1) desaparece**: un proceso bajo `systemd` no se
+duerme, no hay cold start de sueño que enmascarar (los cold starts
+residuales de un deploy/restart son cortos y esporádicos). **La
+justificación (2) sigue intacta** y es suficiente por sí sola: Gemini tarda
+lo que tarda, y esa espera hay que cubrirla con la misma pantalla y
+carrusel. La instrumentación de tiempos
+([ADR-0014](0014-instrumentacion-tiempos-extraccion.md)) midió esos ~7-8s
+como el componente dominante e incontrolable desde la app.
+
+**Qué cambia con este reencuadre:** nada de código. La pantalla, el
+carrusel y los reintentos quedan igual. Cambia solo el *porqué*
+documentado, para que una sesión futura no la lea como un resabio del cold
+start de Render y la quiera sacar. El fallback del service worker
+(`espera.html` servido ante una navegación lenta) también se mantiene:
+sigue cubriendo los cold starts cortos de un deploy/restart en el VPS.
+
+**Pendiente arrastrado, sin cambios:** la decisión del timeout de gunicorn
+(sección "⚠️ Hallazgo reportado" arriba) sigue abierta y viaja a la config
+del VPS — en el server propio el `--timeout` se fija en el `systemd`/
+`gunicorn`, no en `render.yaml`. Se resuelve al montar el server, ver el
+runbook [`docs/ops/vps.md`](../ops/vps.md).

@@ -284,6 +284,49 @@ contenido extraído) — no hay fotos de muestra con ese caso en este
 entorno. Detalle completo en
 `docs/areas/planillas/decisions/0011-estructura-v3.md`.
 
+**Migración de Render a VPS propio — DECIDIDA y DOCUMENTADA, no ejecutada
+todavía (ADR-0015 repo general, 2026-08-11)**: se decide migrar la app de
+Render free tier a un VPS propio (Contabo, Ubuntu 24.04, dominio
+`mcfly.ar`). App a servir en **`facturas.mcfly.ar`**. Decisiones tomadas:
+nginx + gunicorn (systemd) + **Postgres self-hosted** (SQLite descartado,
+para contemplar crecimiento futuro de la DB y no cambiar de motor dos
+veces); **deploy manual** (`git pull` + restart, sin reconstruir el
+auto-deploy por ahora); TLS con certbot; firewall ufw. Sesión de solo
+decisión y documentación — **cero ejecución en el server, cero cambio de
+comportamiento**. Lo escrito/actualizado esta sesión:
+- **ADR-0015** nuevo (`docs/decisions/0015-migracion-render-a-vps-propio.md`)
+  — el ancla, con la división de trabajo humano / **Claudito** (la
+  instancia de Claude CLI instalada en el server, ejecuta la provisión) /
+  Claude Code (única puerta de escritura del repo, integra handoffs).
+- **Runbook operativo nuevo** (`docs/ops/vps.md`) — el how-to completo de
+  montar y operar el VPS (nginx, systemd, Postgres, certbot, backups,
+  deploy, migración de datos con `pg_dump`/`pg_restore`), marcando qué pasos
+  son solo del CEO (🔒: DNS, redirect URI en Google Console, valores de
+  secretos, login real y cutover) y cuáles ejecuta Claudito (⏳). Es **la
+  tarea** que se le pasa a Claudito.
+- **ADR-0013 actualizado** — sección "Retiro 2026-08-11": el keep-alive
+  (UptimeRobot) se retira con la migración (un VPS no duerme); se apaga el
+  monitor recién en el cutover. `/health` se queda como health check real.
+- **ADR-0005 actualizado** — sección "Reencuadre 2026-08-11": la pantalla
+  de espera se mantiene, ahora justificada **solo por la latencia de
+  Gemini**, no por el cold start de Render. El timeout de gunicorn (hallazgo
+  abierto) se resuelve en el VPS fijando `--timeout 60` en el systemd.
+- **`.env.example` corregido** — se sacó `TOKENS_KEY` (no se usa en el
+  código, confirmado por grep), se agregó `GOOGLE_SA_CREDENTIALS_FILE`, y se
+  actualizó `GEMINI_MODEL` de ejemplo a `gemini-2.5-flash`.
+- **`ARCHITECTURE.md` actualizado** — fila Hosting y sección de
+  entornos/secretos apuntan a la migración y al runbook.
+- **Cambio de código pendiente, NO hecho esta sesión** (lo hace Claude Code
+  en un commit aparte, con cuidado): reemplazar `RENDER` por `PRODUCTION` en
+  `app/__init__.py` para la cookie `Secure`. ⚠️ Debe aceptar **las dos**
+  vars durante la transición (`PRODUCTION or RENDER`), porque mientras
+  Render siga vivo `master` se auto-deploya ahí y setea `RENDER`, no
+  `PRODUCTION` — detalle en `docs/ops/vps.md` §8.
+- **Pendiente de vos (CEO), fuera del repo**: el redirect URI
+  `https://facturas.mcfly.ar/oauth2callback` en Google Cloud Console (sin
+  borrar la de Render todavía), el registro DNS, y arrancar la ejecución con
+  Claudito.
+
 ## Current phase
 Phase 1 en producción (`https://facturas-saas.onrender.com`), planilla v3
 (18 columnas) implementada y probada con fotos reales — tiempo de
@@ -774,6 +817,14 @@ auditoría hecha, 3 textos corregidos.
   la izquierda); probado con mocks el flujo completo sin Gemini real.
   Pendiente de confirmación real del CEO con una foto con percepciones
   de verdad.
+- 2026-08-11: ADR-0015 (repo general) — migración de Render a VPS propio
+  (Contabo, Ubuntu 24.04, `facturas.mcfly.ar`): nginx + gunicorn/systemd +
+  Postgres self-hosted, deploy manual, TLS certbot. Se retira el keep-alive
+  (ADR-0013, UptimeRobot) porque un VPS no duerme; se reencuadra la pantalla
+  de espera (ADR-0005) por la latencia de Gemini. `RENDER`→`PRODUCTION` para
+  la cookie Secure (código pendiente). Runbook de ejecución en
+  `docs/ops/vps.md` (tarea para "Claudito", el Claude CLI del server).
+  DECIDIDA y documentada, **no ejecutada** todavía.
 - 2026-07-17: ADR-0011 cierre del resultado medido (handoff del CEO) —
   probado con fotos reales: 9.23s antes (v2, 1 muestra) vs. 25.85s/
   8.30s/7.35s después (v3, 3 muestras). Mejora modesta (~1-2s en el caso

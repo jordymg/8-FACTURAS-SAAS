@@ -3,9 +3,11 @@
 **Date:** 2026-07-16
 **Status:** ADOPTADA e IMPLEMENTADA — mecanismo **reemplazado** el mismo
 día tras dos intentos fallidos con GitHub Actions (ver "Corrección
-2026-07-16" y "Reemplazo 2026-07-16" al final). Mecanismo vigente:
-**UptimeRobot**, configurado fuera del repo. Ver también
-[Issue #007](../ISSUES.md).
+2026-07-16" y "Reemplazo 2026-07-16" al final). Mecanismo que fue vigente:
+**UptimeRobot**, configurado fuera del repo. **A RETIRAR** con la migración
+a VPS propio — un VPS no duerme, el keep-alive pierde su razón de ser (ver
+"Retiro 2026-08-11" al final y [ADR-0015](0015-migracion-render-a-vps-propio.md)).
+Ver también [Issue #007](../ISSUES.md).
 
 ## Contexto
 Render free tier duerme el servicio tras ~15 minutos sin tráfico entrante;
@@ -170,3 +172,30 @@ alternativa que quedaba en pie es justamente la que se adopta acá.
 mantenga la app despierta durante un período largo (horas/días) sin cold
 starts — pendiente de que el CEO lo confirme desde su cuenta y desde el
 uso real de la app.
+
+## Retiro 2026-08-11: migración a VPS propio (ADR-0015)
+
+Todo este ADR — el keep-alive en cualquiera de sus formas — existe por una
+sola causa: **Render free tier duerme el servicio tras ~15 min sin
+tráfico**. Con la migración a un VPS propio (Contabo, Ubuntu 24.04, ver
+[ADR-0015](0015-migracion-render-a-vps-propio.md)) esa causa desaparece: un
+proceso bajo `systemd` en un servidor propio no se duerme. **El keep-alive
+pierde su razón de ser y se retira.**
+
+**Qué se retira, al cerrar el cutover del VPS (no antes):**
+- El monitor de UptimeRobot que pinguea `/health`, configurado en la cuenta
+  del CEO fuera del repo. Se apaga a mano una vez que el VPS quede como
+  producción (mantenerlo apuntando a la URL de Render mientras Render siga
+  siendo la producción activa; apagarlo recién en el cutover).
+
+**Qué se mantiene:**
+- El endpoint `GET /health` en `app/blueprints/api.py`. Deja de ser un
+  truco anti-sueño y pasa a ser un **health check real**: lo usa nginx /
+  el monitoreo del VPS para saber si la app está viva. Sigue siendo
+  estático, sin auth, sin tocar DB/Sheets/Gemini.
+
+**Qué NO cubre este retiro:** los cold starts residuales que igual pueden
+pasar por un deploy o un restart del servicio siguen cubiertos por la
+pantalla de espera ([ADR-0005](0005-pantalla-espera-cold-start.md)) —
+reencuadrada en esa misma migración para justificarse por la latencia de
+Gemini, no por Render.

@@ -10,7 +10,7 @@
 | Database | User's own Google Sheet (one spreadsheet per user) + minimal app DB (SQLite → Postgres on Render) for users/subscriptions | 0001, 0002, 0004 |
 | Auth | Google OAuth 2.0 — solo identidad (scopes: openid, email). Sheets se escriben con una Service Account, no con el token del usuario | 0004 |
 | Payments | Mercado Pago suscripciones | 0003 |
-| Hosting | Render (single Flask service serves landing + PWA + API) | 0001 |
+| Hosting | Render hoy; migrando a VPS propio (Contabo, Ubuntu 24.04, `facturas.mcfly.ar`, nginx + gunicorn/systemd + Postgres local) — single Flask service serves landing + PWA + API | 0001, 0015 |
 | AI / external APIs | Gemini (vision, `response_schema` estructurado) for invoice data extraction | 0001, 0004 |
 
 ## 2. System overview
@@ -69,8 +69,13 @@ Los ~20 campos que extrae la IA y edita el usuario están en
   (`GEMINI_API_KEY`, `GOOGLE_CLIENT_ID/SECRET`, `GOOGLE_SA_CREDENTIALS_FILE`)
 - Credenciales de la Service Account: archivo JSON fuera del repo (`instance/`,
   gitignored), path apuntado por `GOOGLE_SA_CREDENTIALS_FILE`
-- Production: Render web service, auto-deploy from GitHub `master`
-- Secrets live in: Render dashboard env vars — never in the repo
+- Production (hoy): Render web service, auto-deploy from GitHub `master`.
+  Secrets en env vars del dashboard de Render — never in the repo.
+- Production (en migración → VPS propio, ADR-0015): nginx + gunicorn
+  (systemd) + Postgres local en `facturas.mcfly.ar`, deploy manual, secrets
+  en `/etc/facturas-saas/env` (fuera del repo). En el VPS la var de
+  producción es `PRODUCTION=true` (reemplaza `RENDER=true`). Procedimiento
+  completo en [`docs/ops/vps.md`](ops/vps.md).
 
 ## 6. Conventions
 - Language: Python 3.11+, type hints
