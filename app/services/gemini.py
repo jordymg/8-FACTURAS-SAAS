@@ -82,7 +82,7 @@ def extract_invoice(image_bytes: bytes, mime_type: str = "image/jpeg") -> tuple[
     """Devuelve (campos_extraídos, tiempos_gemini) — ver docstring de
     `_generate_content_con_reintentos` para el contenido de `tiempos_gemini`."""
     client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    model = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
     response, tiempos_gemini = _generate_content_con_reintentos(
         client,
         model=model,
