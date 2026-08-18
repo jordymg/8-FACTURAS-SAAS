@@ -6,6 +6,7 @@ from google import genai
 from google.genai import errors as genai_errors
 from google.genai import types
 
+from app.services.extraction_prompt import PROMPT as _PROMPT
 from app.services.fields import FIELDS, FIELD_KEYS
 
 # Reintentos ante 503 de Gemini (alta demanda) — ADR-0005 general. Solo se
@@ -50,32 +51,6 @@ def _generate_content_con_reintentos(client: genai.Client, **kwargs) -> tuple:
                 raise GeminiSobrecargadoError(MENSAJE_ERROR_FINAL) from None
             time.sleep(BACKOFF_SEG[intentos_fallidos])
             intentos_fallidos += 1
-
-
-_PROMPT = (
-    "Sos un asistente que extrae datos de comprobantes argentinos (facturas y presupuestos "
-    "de proveedores) a partir de una foto, para el libro de compras de un contador.\n\n"
-    "Mirá la imagen y devolvé los datos del comprobante. Reglas generales:\n\n"
-    "- Extraé SOLO lo que ves en la imagen. Si un dato no está o no se lee con claridad, "
-    'dejalo como string vacío "". NUNCA inventes ni completes con suposiciones.\n'
-    "- Los importes los devolvés como número con punto decimal y SIN separador de miles. "
-    'Ejemplo: si en la factura dice "1.234,56" devolvés "1234.56".\n'
-    "- La fecha la devolvés en formato AAAA-MM-DD.\n"
-    "- El CUIT es el del proveedor (quien emite), no el del receptor.\n"
-    '- Moneda: "ARS" si son pesos argentinos, "USD" si son dólares.\n\n'
-    "Sobre impuestos, percepciones y retenciones: IVA a cada alícuota (10,5%/21%/27%) e "
-    "Impuestos Internos tienen su propia columna — ver la descripción de cada campo, y NO "
-    "los sumes en 'otros_impuestos'. Cualquier otra percepción, retención o impuesto que el "
-    "comprobante discrimine por separado (ej. percepción de IVA, percepción de IIBB, "
-    "retención de Ganancias, retención de IVA, SIRTAC, u otros) va SUMADO en "
-    "'otros_impuestos', no cada uno en un campo propio.\n\n"
-    "Regla de duda (importante, ver ADR-0008 del área de Planillas): si no podés determinar "
-    "con certeza el valor de un campo — por ejemplo, si no ves ninguna evidencia clara de que "
-    "el comprobante esté autorizado (CAE, CAEA, CAI, o marcas de un controlador fiscal "
-    "homologado) para decidir el campo 'tipo' — completá igual el campo con el valor que te "
-    "parezca más probable (NUNCA lo dejes vacío por duda) y agregá su clave a "
-    "'campos_inciertos', para que una persona lo revise antes de guardar."
-)
 
 
 def extract_invoice(image_bytes: bytes, mime_type: str = "image/jpeg") -> tuple[dict, dict]:

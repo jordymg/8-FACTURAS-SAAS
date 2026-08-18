@@ -5,10 +5,11 @@ import time
 from flask import Blueprint, jsonify, request, session
 
 from app.models import User, db
-from app.services import sheets, tiempos
+from app.services import sheets, tiempos, validacion
 from app.services.fields import FIELD_KEYS
 from app.services.formats import MIME_EXTENSIONS
 from app.services.gemini import extract_invoice
+from app.services.groq_extract import extract_invoice_groq
 from app.services.limites import LIMITE_MENSUAL, UMBRAL_AVISO, facturas_del_mes, registrar_factura_cargada
 
 api_bp = Blueprint("api", __name__)
@@ -127,21 +128,37 @@ def extract():
         image_bytes = file.read()
         tamano_mb = len(image_bytes) / (1024 * 1024)
         duracion_recepcion = time.monotonic() - t_foto_inicio
+        # Gemini primero; si falla por lo que sea (503 agotando reintentos,
+        # API key con problema, red), se prueba Groq como respaldo antes de
+        # rendirse — "tiene que andar a la primera" (handoff CEO 2026-08-18).
+        # Groq no reintenta por su cuenta (ver groq_extract.py): ya es el
+        # segundo intento, un tercer nivel de reintentos no se justifica.
+        proveedor_usado = "gemini"
         try:
-            fields, tiempos_gemini = extract_invoice(image_bytes, mime_type)
-        except Exception as e:
-            resultados.append({"nombre": file.filename, "ok": False, "error": str(e)})
-            tiempos.log(
-                f"TIEMPOS extract [{idx}/{total_fotos}] — imagen: {tamano_mb:.1f}MB | "
-                f"recepción: {duracion_recepcion:.2f}s | gemini: error ({type(e).__name__}: {e}) | "
-                f"total: {time.monotonic() - t_foto_inicio:.2f}s"
-            )
-            continue
+            fields, tiempos_extraccion = extract_invoice(image_bytes, mime_type)
+        except Exception as e_gemini:
+            try:
+                fields, tiempos_extraccion = extract_invoice_groq(image_bytes, mime_type)
+                proveedor_usado = "groq (respaldo)"
+            except Exception as e_groq:
+                resultados.append({"nombre": file.filename, "ok": False, "error": str(e_gemini)})
+                tiempos.log(
+                    f"TIEMPOS extract [{idx}/{total_fotos}] — imagen: {tamano_mb:.1f}MB | "
+                    f"recepción: {duracion_recepcion:.2f}s | "
+                    f"gemini: error ({type(e_gemini).__name__}: {e_gemini}) | "
+                    f"groq (respaldo): error ({type(e_groq).__name__}: {e_groq}) | "
+                    f"total: {time.monotonic() - t_foto_inicio:.2f}s"
+                )
+                continue
 
         # campos_inciertos no es un dato del comprobante — es la señal de duda
         # de la IA (ADR-0007), se manda aparte para que el frontend resalte
         # esos campos en rojo en vez de tratarlos como un valor más.
         inciertos = fields.pop("campos_inciertos", [])
+        # Chequeo aritmético propio (no depende de la IA): si neto + IVAs +
+        # otros impuestos no suma el total, se marca "total" como incierto
+        # también — detecta errores de extracción sin gastar otra llamada.
+        inciertos = validacion.chequear_total(fields, inciertos)
         t_dup_inicio = time.monotonic()
         duplicado = sheets.find_duplicate(
             invoices_existentes, fields.get("proveedor"), fields.get("numero"), fields.get("fecha")
@@ -164,9 +181,9 @@ def extract():
         tiempos.log(
             f"TIEMPOS extract [{idx}/{total_fotos}] — imagen: {tamano_mb:.1f}MB | "
             f"recepción: {duracion_recepcion:.2f}s | "
-            f"gemini: {tiempos_gemini['duracion_total']:.2f}s "
-            f"(reintentos: {tiempos_gemini['reintentos']}, "
-            f"último intento: {tiempos_gemini['duracion_ultimo_intento']:.2f}s) | "
+            f"{proveedor_usado}: {tiempos_extraccion['duracion_total']:.2f}s "
+            f"(reintentos: {tiempos_extraccion['reintentos']}, "
+            f"último intento: {tiempos_extraccion['duracion_ultimo_intento']:.2f}s) | "
             f"duplicados: {duracion_duplicados:.2f}s | "
             f"total: {time.monotonic() - t_foto_inicio:.2f}s"
         )
