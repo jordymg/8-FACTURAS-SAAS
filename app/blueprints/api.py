@@ -112,7 +112,7 @@ def extract():
             resultados.append({"nombre": file.filename, "ok": False, "error": str(e)})
             tiempos.log(
                 f"TIEMPOS extract [{idx}/{total_fotos}] — imagen: {tamano_mb:.1f}MB | "
-                f"recepción: {duracion_recepcion:.2f}s | gemini: error | "
+                f"recepción: {duracion_recepcion:.2f}s | gemini: error ({type(e).__name__}: {e}) | "
                 f"total: {time.monotonic() - t_foto_inicio:.2f}s"
             )
             continue
