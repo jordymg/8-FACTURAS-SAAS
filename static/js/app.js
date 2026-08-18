@@ -66,21 +66,51 @@
   }
 
   // ── Procesar con IA ────────────────────────────────────
+  // Normalización de proveedor/número, igual a norm_text/norm_id en
+  // app/services/sheets.py — se duplica acá (no hay forma de compartir
+  // código Python/JS) solo para el chequeo de "misma tanda" de abajo.
+  function normTextTanda(v) {
+    return String(v || "").trim().replace(/\s+/g, " ").toLowerCase();
+  }
+  function normIdTanda(v) {
+    const digits = String(v || "").replace(/\D/g, "");
+    return digits.replace(/^0+/, "") || "0";
+  }
+
+  // Cada foto es su propia request a /api/extract (antes se mandaba toda la
+  // tanda en una sola request). Con varias fotos juntas, una que agotaba
+  // los 3 reintentos ante un 503 de Gemini le sumaba ~14s al tiempo total
+  // de TODAS las demás — con tandas grandes eso podía superar el timeout
+  // del servidor y cortar la conexión entera (se veía como "Error de red"
+  // aunque la causa real era el timeout). Separando en una request por
+  // foto, una que tarda o falla ya no arrastra a las demás, y cada request
+  // queda acotada al peor caso de una sola foto.
   async function procesar(lista) {
     bloquearZona(true);
     overlayEsperaEl.classList.remove("hidden");
-    const form = new FormData();
-    lista.forEach((f) => form.append("archivos", f));
 
-    let resultados;
-    try {
-      const resp = await fetch("/api/extract", { method: "POST", body: form });
-      resultados = await resp.json();
-    } catch (e) {
-      overlayEsperaEl.classList.add("hidden");
-      bloquearZona(false);
-      alert("Error de red. Revisá tu conexión.");
-      return;
+    const resultados = [];
+    const vistosEnEstaTanda = new Set();
+    for (const archivo of lista) {
+      const form = new FormData();
+      form.append("archivos", archivo);
+      let r;
+      try {
+        const resp = await fetch("/api/extract", { method: "POST", body: form });
+        [r] = await resp.json();
+      } catch (e) {
+        r = { nombre: archivo.name, ok: false, error: "Error de red. Revisá tu conexión y volvé a intentar esta foto." };
+      }
+      // El backend chequea duplicado contra el Sheet por foto, pero al
+      // mandar cada foto en su propia request perdió visibilidad de las
+      // otras fotos de esta misma tanda (antes lo hacía con
+      // `vistos_en_lote`, dentro de la misma request) — se completa acá.
+      if (r.ok && !r.duplicado && r.fields && r.fields.proveedor && r.fields.numero && r.fields.fecha) {
+        const clave = `${normTextTanda(r.fields.proveedor)}|${normIdTanda(r.fields.numero)}|${String(r.fields.fecha).trim()}`;
+        if (vistosEnEstaTanda.has(clave)) r.duplicado = "__MISMA_TANDA__";
+        vistosEnEstaTanda.add(clave);
+      }
+      resultados.push(r);
     }
 
     overlayEsperaEl.classList.add("hidden");
