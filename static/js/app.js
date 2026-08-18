@@ -66,6 +66,39 @@
   }
 
   // ── Procesar con IA ────────────────────────────────────
+  // Comprime/reduce la foto antes de subirla — las fotos de cámara pesan
+  // 3-4MB a resolución completa, y Gemini tarda más en procesar imágenes
+  // grandes (se dividen en más "tiles" internamente, más tokens). 1600px
+  // de lado mayor sigue siendo perfectamente legible para leer una
+  // factura. Si algo falla (navegador viejo, no es imagen) se manda el
+  // archivo original tal cual — nunca bloquear la subida por esto.
+  const MAX_DIMENSION_PX = 1600;
+  const CALIDAD_JPEG = 0.85;
+
+  async function comprimirImagen(file) {
+    if (!file.type || !file.type.startsWith("image/") || typeof createImageBitmap !== "function") {
+      return file;
+    }
+    try {
+      const bitmap = await createImageBitmap(file);
+      let { width, height } = bitmap;
+      const lado = Math.max(width, height);
+      if (lado > MAX_DIMENSION_PX) {
+        const escala = MAX_DIMENSION_PX / lado;
+        width = Math.round(width * escala);
+        height = Math.round(height * escala);
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d").drawImage(bitmap, 0, 0, width, height);
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", CALIDAD_JPEG));
+      return blob ? new File([blob], file.name, { type: "image/jpeg" }) : file;
+    } catch (e) {
+      return file;
+    }
+  }
+
   // Normalización de proveedor/número, igual a norm_text/norm_id en
   // app/services/sheets.py — se duplica acá (no hay forma de compartir
   // código Python/JS) solo para el chequeo de "misma tanda" de abajo.
@@ -92,8 +125,9 @@
     const resultados = [];
     const vistosEnEstaTanda = new Set();
     for (const archivo of lista) {
+      const archivoParaSubir = await comprimirImagen(archivo);
       const form = new FormData();
-      form.append("archivos", archivo);
+      form.append("archivos", archivoParaSubir);
       let r;
       try {
         const resp = await fetch("/api/extract", { method: "POST", body: form });
@@ -263,8 +297,9 @@
       btn.disabled = true;
       btn.textContent = "Procesando…";
       msg.textContent = "";
+      const archivoParaSubir = await comprimirImagen(archivo);
       const form = new FormData();
-      form.append("archivos", archivo);
+      form.append("archivos", archivoParaSubir);
       try {
         const resp = await fetch("/api/extract", { method: "POST", body: form });
         const [resultado] = await resp.json();

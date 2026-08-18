@@ -13,6 +13,27 @@ from app.services.limites import LIMITE_MENSUAL, UMBRAL_AVISO, facturas_del_mes,
 
 api_bp = Blueprint("api", __name__)
 
+# Cache corto de solo lectura para el chequeo de duplicados de /api/extract
+# (no para GET /api/invoices, que siempre debe reflejar guardados recientes).
+# Antes se leía la planilla una sola vez por tanda (varias fotos, una sola
+# request); desde que cada foto es su propia request (ver
+# static/js/app.js::procesar), sin esto se releía en cada foto — ~2.5-3s
+# extra por foto. El chequeo de duplicados es solo informativo, no bloquea
+# el guardado (ADR-0009 planillas), así que una ventana corta de datos
+# desactualizados es un trade-off aceptable a cambio de esos segundos.
+_CACHE_TTL_DUPLICADOS_SEG = 60
+_cache_duplicados: dict[str, tuple[float, list[dict]]] = {}
+
+
+def _invoices_para_duplicados(spreadsheet_id: str) -> list[dict]:
+    entrada = _cache_duplicados.get(spreadsheet_id)
+    ahora = time.monotonic()
+    if entrada and ahora - entrada[0] < _CACHE_TTL_DUPLICADOS_SEG:
+        return entrada[1]
+    invoices = sheets.list_invoices(spreadsheet_id)
+    _cache_duplicados[spreadsheet_id] = (ahora, invoices)
+    return invoices
+
 
 def _current_user() -> User | None:
     user_id = session.get("user_id")
@@ -81,11 +102,11 @@ def extract():
     if not files:
         return jsonify({"error": "missing files"}), 400
 
-    # Se lee la planilla una sola vez por lote (no por archivo) para chequear
-    # duplicados (ADR-0009) — evita releer todo el Sheet varias veces si se
-    # suben varias fotos juntas.
+    # Chequeo de duplicados (ADR-0009) contra un cache corto de la planilla
+    # (ver _invoices_para_duplicados arriba) — evita releer todo el Sheet en
+    # cada foto de una misma tanda, ahora que cada foto es su propia request.
     t_lectura_inicio = time.monotonic()
-    invoices_existentes = sheets.list_invoices(user.spreadsheet_id) if user.spreadsheet_id else []
+    invoices_existentes = _invoices_para_duplicados(user.spreadsheet_id) if user.spreadsheet_id else []
     duracion_lectura_planilla = time.monotonic() - t_lectura_inicio
     # Además del Sheet, dos fotos de la MISMA tanda pueden ser la misma
     # factura (ninguna está guardada todavía, así que find_duplicate contra
@@ -181,6 +202,7 @@ def save_invoice():
 
     registrar_factura_cargada(user)
     db.session.commit()
+    _cache_duplicados.pop(user.spreadsheet_id, None)  # ver _invoices_para_duplicados
 
     tiempos.log(
         f"TIEMPOS invoices — sheet: {duracion_sheet:.2f}s"
