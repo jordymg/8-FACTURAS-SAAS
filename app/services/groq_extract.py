@@ -83,9 +83,16 @@ def extract_invoice_groq(image_bytes: bytes, mime_type: str = "image/jpeg") -> t
             },
             timeout=30,
         )
-        resp.raise_for_status()
+        if resp.status_code >= 400:
+            # El cuerpo de la respuesta trae el detalle real (ej. rate
+            # limit, json_validate_failed) — resp.raise_for_status() solo
+            # da la frase genérica ("400 Bad Request"), no alcanza para
+            # diagnosticar sin volver a reproducir el error a mano.
+            raise GroqExtraccionError(f"{resp.status_code}: {resp.text[:500]}")
         contenido = resp.json()["choices"][0]["message"]["content"]
         datos = json.loads(contenido)
+    except GroqExtraccionError:
+        raise
     except Exception as e:
         raise GroqExtraccionError(str(e)) from e
     duracion = time.monotonic() - t_inicio
