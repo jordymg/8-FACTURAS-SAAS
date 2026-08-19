@@ -1,7 +1,16 @@
 """Prompt de extracción de comprobantes — compartido entre proveedores de
-IA (app/services/gemini.py, app/services/groq_extract.py). Único lugar a
-editar si cambian las reglas de negocio (ADR-0008, ADR-0009 planillas),
-para que no diverjan entre proveedores."""
+IA (gemini.py, groq_extract.py, mistral_extract.py, openrouter_extract.py).
+Único lugar a editar si cambian las reglas de negocio (ADR-0008, ADR-0009
+planillas), para que no diverjan entre proveedores.
+
+También trae los helpers compartidos por los proveedores "estilo OpenAI"
+(Groq, Mistral, OpenRouter) que no tienen el response_schema estructurado
+de Gemini: arman el mismo texto de schema en el prompt y parsean la
+respuesta de la misma forma — Gemini no los usa, tiene su propio
+response_schema real."""
+import json
+
+from app.services.fields import FIELD_KEYS, FIELDS
 
 PROMPT = (
     "Sos un asistente que extrae datos de comprobantes argentinos (facturas y presupuestos "
@@ -27,3 +36,39 @@ PROMPT = (
     "parezca más probable (NUNCA lo dejes vacío por duda) y agregá su clave a "
     "'campos_inciertos', para que una persona lo revise antes de guardar."
 )
+
+
+def _schema_texto() -> str:
+    lineas = [f'- "{f["key"]}": {f["description"]}' for f in FIELDS]
+    return "\n".join(lineas)
+
+
+def prompt_con_schema_json() -> str:
+    """PROMPT + el listado de claves esperadas — para proveedores sin un
+    response_schema real (Gemini si lo tiene, no necesita esto)."""
+    return (
+        PROMPT
+        + "\n\nDevolvé SOLO un objeto JSON (sin texto ni markdown alrededor) con "
+        "EXACTAMENTE estas claves:\n"
+        + _schema_texto()
+        + '\n- "campos_inciertos": lista de claves (de las de arriba) con baja certeza, '
+        "[] si no hay ninguna."
+    )
+
+
+def parsear_json_extraido(contenido: str) -> dict:
+    """Algunos proveedores devuelven el JSON envuelto en un bloque
+    ```json ... ``` pese a pedírselo explícitamente sin markdown — se lo
+    saca si está, antes de json.loads."""
+    texto = contenido.strip()
+    if texto.startswith("```"):
+        texto = texto.strip("`")
+        if texto.startswith("json"):
+            texto = texto[4:]
+    return json.loads(texto.strip())
+
+
+def fields_desde_json(datos: dict) -> dict:
+    fields = {k: str(datos.get(k, "") or "") for k in FIELD_KEYS}
+    fields["campos_inciertos"] = datos.get("campos_inciertos") or []
+    return fields

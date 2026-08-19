@@ -8,14 +8,12 @@ calidad de extracción equivalente — por eso es respaldo, no reemplazo.
 integrar esto: qwen/qwen3.6-27b (configurable vía GROQ_MODEL por si Groq
 cambia qué modelos ofrece — mismo problema que ya pasó con Gemini)."""
 import base64
-import json
 import os
 import time
 
 import requests
 
-from app.services.extraction_prompt import PROMPT
-from app.services.fields import FIELDS, FIELD_KEYS
+from app.services.extraction_prompt import fields_desde_json, parsear_json_extraido, prompt_con_schema_json
 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 # Sin User-Agent, Cloudflare (delante de la API de Groq) devuelve 403
@@ -29,28 +27,12 @@ class GroqExtraccionError(Exception):
     app/blueprints/api.py decida qué mostrar si también falla."""
 
 
-def _schema_texto() -> str:
-    lineas = [f'- "{f["key"]}": {f["description"]}' for f in FIELDS]
-    return "\n".join(lineas)
-
-
 def extract_invoice_groq(image_bytes: bytes, mime_type: str = "image/jpeg") -> tuple[dict, dict]:
     """Devuelve (campos_extraídos, tiempos) — mismo contrato que
     gemini.py::extract_invoice, para que app/blueprints/api.py pueda usar
     cualquiera de los dos sin distinguir cuál respondió."""
     modelo = os.getenv("GROQ_MODEL", "qwen/qwen3.6-27b")
-    # Groq (API compatible con OpenAI) no tiene un equivalente exacto al
-    # response_schema estructurado de Gemini — json_object solo garantiza
-    # JSON válido, no las claves puntuales. Se listan las claves y su
-    # descripción directo en el prompt para compensar.
-    prompt_json = (
-        PROMPT
-        + "\n\nDevolvé SOLO un objeto JSON (sin texto ni explicación alrededor) con "
-        "EXACTAMENTE estas claves:\n"
-        + _schema_texto()
-        + '\n- "campos_inciertos": lista de claves (de las de arriba) con baja certeza, '
-        "[] si no hay ninguna."
-    )
+    prompt_json = prompt_con_schema_json()
     b64 = base64.b64encode(image_bytes).decode()
     payload = {
         "model": modelo,
@@ -90,14 +72,13 @@ def extract_invoice_groq(image_bytes: bytes, mime_type: str = "image/jpeg") -> t
             # diagnosticar sin volver a reproducir el error a mano.
             raise GroqExtraccionError(f"{resp.status_code}: {resp.text[:500]}")
         contenido = resp.json()["choices"][0]["message"]["content"]
-        datos = json.loads(contenido)
+        datos = parsear_json_extraido(contenido)
     except GroqExtraccionError:
         raise
     except Exception as e:
         raise GroqExtraccionError(str(e)) from e
     duracion = time.monotonic() - t_inicio
 
-    fields = {k: str(datos.get(k, "") or "") for k in FIELD_KEYS}
-    fields["campos_inciertos"] = datos.get("campos_inciertos") or []
+    fields = fields_desde_json(datos)
     tiempos = {"reintentos": 0, "duracion_total": duracion, "duracion_ultimo_intento": duracion}
     return fields, tiempos

@@ -127,19 +127,24 @@ def extract():
         image_bytes = file.read()
         tamano_mb = len(image_bytes) / (1024 * 1024)
         duracion_recepcion = time.monotonic() - t_foto_inicio
-        # Gemini y Groq en simultáneo, se usa el que responda primero con
+        # Los 4 proveedores en simultáneo, se usa el que responda primero con
         # éxito (ver app/services/extraccion.py) — "tiene que andar rápido y
         # a la primera" (handoff CEO 2026-08-19), priorizando experiencia de
         # usuario sobre eficiencia de cómputo con el volumen actual.
         try:
             fields, tiempos_extraccion, proveedor_usado = extraer_con_carrera(image_bytes, mime_type)
         except Exception as e:
-            causa = f" | causa Groq: {type(e.__cause__).__name__}: {e.__cause__}" if e.__cause__ else ""
+            # e.errores (TodosLosProveedoresFallaronError) trae el detalle
+            # técnico real de cada proveedor para el log — str(e) en cambio
+            # es el mensaje amigable, eso es lo único que va al usuario.
+            detalle = "; ".join(
+                f"{prov}: {type(err).__name__}: {err}" for prov, err in getattr(e, "errores", {}).items()
+            ) or f"{type(e).__name__}: {e}"
             resultados.append({"nombre": file.filename, "ok": False, "error": str(e)})
             tiempos.log(
                 f"TIEMPOS extract [{idx}/{total_fotos}] — imagen: {tamano_mb:.1f}MB | "
                 f"recepción: {duracion_recepcion:.2f}s | "
-                f"gemini y groq: error ({type(e).__name__}: {e}){causa} | "
+                f"todos los proveedores fallaron: {detalle} | "
                 f"total: {time.monotonic() - t_foto_inicio:.2f}s"
             )
             continue

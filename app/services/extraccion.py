@@ -1,36 +1,57 @@
-"""Orquesta la extracción entre los proveedores disponibles: Gemini y Groq
-se lanzan en simultáneo (no uno primero y el otro como respaldo) — se usa
-la que responda primero con éxito. Decisión del CEO 2026-08-19: priorizar
-la experiencia de usuario (que ande rápido) sobre la eficiencia de cómputo
-(se duplica la llamada en cada foto, no solo cuando una falla) — con el
-volumen actual de la app el costo extra es insignificante. Si en algún
-momento esto escala, revisar."""
+"""Orquesta la extracción entre los proveedores disponibles — se lanzan
+TODOS en simultáneo (no uno primero y los demás como respaldo) y se usa el
+que responda primero con éxito. Decisión del CEO 2026-08-19: priorizar la
+experiencia de usuario (que ande rápido y a la primera) sobre la
+eficiencia de cómputo — con el volumen actual de la app, duplicar (ahora
+cuadruplicar) la llamada en cada foto es un costo aceptable. Sumado el
+mismo día: Mistral y OpenRouter, tras un caso real donde Gemini agotó su
+cuota diaria gratis y Groq falló al mismo tiempo — más proveedores en la
+carrera significa que hacen falta que TODOS fallen a la vez para que el
+usuario vea un error."""
 import time
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 
-from app.services.gemini import extract_invoice
+from app.services.gemini import MENSAJE_ERROR_FINAL, extract_invoice
 from app.services.groq_extract import extract_invoice_groq
+from app.services.mistral_extract import extract_invoice_mistral
+from app.services.openrouter_extract import extract_invoice_openrouter
+
+PROVEEDORES = {
+    "gemini": extract_invoice,
+    "groq (carrera)": extract_invoice_groq,
+    "mistral (carrera)": extract_invoice_mistral,
+    "openrouter (carrera)": extract_invoice_openrouter,
+}
+
+
+class TodosLosProveedoresFallaronError(Exception):
+    """Se levanta cuando los 4 proveedores de PROVEEDORES fallan en la
+    misma foto. str(self) da el mensaje amigable ya aprobado para mostrar
+    al usuario (MENSAJE_ERROR_FINAL) — NUNCA el error crudo de ningún
+    proveedor (podría traer nombres de modelo o mensajes técnicos, contra
+    ADR-0009 "nunca mencionar IA"). El detalle real de cada proveedor
+    queda en .errores, para que app/blueprints/api.py lo loguee sin
+    mostrárselo al usuario."""
+
+    def __init__(self, errores: dict[str, Exception]):
+        super().__init__(MENSAJE_ERROR_FINAL)
+        self.errores = errores
 
 
 def extraer_con_carrera(image_bytes: bytes, mime_type: str) -> tuple[dict, dict, str]:
-    """Devuelve (fields, tiempos, proveedor_usado). Lanza extract_invoice
-    (Gemini) y extract_invoice_groq (Groq) en threads separados y devuelve
-    la primera que termine CON ÉXITO — si la más rápida falla, sigue
-    esperando a la otra antes de rendirse. Si ambas fallan, relanza el
-    error de Gemini (ya trae el mensaje amigable pensado para el usuario,
-    ver GeminiSobrecargadoError). No usa `with` sobre el executor: haría
-    que la función bloquee hasta que la thread perdedora también termine
-    (el `__exit__` por default espera a todas) — acá se descarta con
-    `shutdown(wait=False)` para no perder el beneficio de la carrera."""
+    """Devuelve (fields, tiempos, proveedor_usado). Lanza los proveedores
+    de PROVEEDORES en threads separados y devuelve el primero que termine
+    CON ÉXITO — si el más rápido falla, sigue esperando a los demás antes
+    de rendirse. Si todos fallan, levanta TodosLosProveedoresFallaronError.
+    No usa `with` sobre el executor: haría que la función bloquee hasta
+    que las threads perdedoras también terminen (el `__exit__` por default
+    espera a todas) — acá se descarta con `shutdown(wait=False)` para no
+    perder el beneficio de la carrera."""
     t_inicio = time.monotonic()
-    ex = ThreadPoolExecutor(max_workers=2)
-    futuros = {
-        ex.submit(extract_invoice, image_bytes, mime_type): "gemini",
-        ex.submit(extract_invoice_groq, image_bytes, mime_type): "groq (carrera)",
-    }
+    ex = ThreadPoolExecutor(max_workers=len(PROVEEDORES))
+    futuros = {ex.submit(fn, image_bytes, mime_type): nombre for nombre, fn in PROVEEDORES.items()}
     try:
-        error_gemini = None
-        error_groq = None
+        errores: dict[str, Exception] = {}
         pendientes = set(futuros)
         while pendientes:
             listos, pendientes = wait(pendientes, return_when=FIRST_COMPLETED)
@@ -39,14 +60,11 @@ def extraer_con_carrera(image_bytes: bytes, mime_type: str) -> tuple[dict, dict,
                 try:
                     fields, tiempos_proveedor = futuro.result()
                 except Exception as e:
-                    if proveedor == "gemini":
-                        error_gemini = e
-                    else:
-                        error_groq = e
+                    errores[proveedor] = e
                     continue
                 tiempos_proveedor = dict(tiempos_proveedor)
                 tiempos_proveedor["duracion_carrera"] = time.monotonic() - t_inicio
                 return fields, tiempos_proveedor, proveedor
-        raise error_gemini from error_groq
+        raise TodosLosProveedoresFallaronError(errores)
     finally:
         ex.shutdown(wait=False)
